@@ -1,3 +1,7 @@
+[![Pypi](https://badge.fury.io/py/re-ircbot.svg)](https://pypi.org/project/re-ircbot/)
+[![Chat with me on irc](https://img.shields.io/badge/-IRC-gray?logo=gitter)](https://mangle.ga/irc)
+
+
 [![asciicast](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk.svg)](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk)
 # GDScript REPL
 

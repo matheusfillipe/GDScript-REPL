@@ -56,6 +56,9 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     install_requires=requirements,
+    package_data={
+        'static': ['*.gd'],
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
