@@ -7,6 +7,7 @@ extends SceneTree
 const PORT = 9080
 # Our WebSocketServer instance.
 var _server = WebSocketServer.new()
+var port = PORT
 
 var sessions = {}
 var debug = false
@@ -129,6 +130,10 @@ func _init():
   if OS.has_environment("DEBUG") and OS.get_environment("DEBUG").to_lower() in ["true", "1"]:
     debug = true
 
+  if OS.has_environment("PORT"):
+    port = int(OS.get_environment("PORT"))
+
+
   # We dont need those but good to know
   #_server.connect("client_connected", self, "_connected")
   #_server.connect("client_disconnected", self, "_disconnected")
@@ -136,9 +141,10 @@ func _init():
   _server.connect("data_received", self, "_on_data")
 
   # Start listening on the given port.
-  var err = _server.listen(PORT)
+  var err = _server.listen(port)
   if err != OK:
     print("Unable to start server")
+  print("Listening on ", port)
   while true:
     OS.delay_msec(50)
     _process()

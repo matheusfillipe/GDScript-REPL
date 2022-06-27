@@ -2,8 +2,8 @@ from websocket import create_connection
 from config import HOST, PORT
 
 class client:
-    def __init__(self):
-        self.ws = create_connection(f"ws://{HOST}:{PORT}")
+    def __init__(self, host=HOST, port=PORT):
+        self.ws = create_connection(f"ws://{host}:{port}")
 
     def close(self):
         self.ws.close()

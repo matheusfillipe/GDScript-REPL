@@ -1,7 +1,6 @@
 __pycache__/
-config.py
 docker/godot
 docker/logs/
 venv/
-bot_config.py
 botvenv/
+irc_bot/config.py

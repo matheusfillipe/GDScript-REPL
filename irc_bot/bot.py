@@ -11,8 +11,9 @@ from cachetools import TTLCache
 from IrcBot.bot import IrcBot, Message, utils
 from pexpect import replwrap
 
-from bot_config import (CHANNELS, COQ_REPL_TTL, COQTOP_CMD, NICK, PORT, PREFIX,
+from bot_config import (CHANNELS, DOCKER_IMAGE, NICK, PORT, PREFIX,
                   SERVER, SSL)
+
 from message_server import listen_loop
 
 user_repls = TTLCache(maxsize=5, ttl=COQ_REPL_TTL)

@@ -1,6 +1,7 @@
+from find_godot import find_godot
 ### GODOT optiosn
 # Godot executable
-GODOT = "godot3-server"
+GODOT = find_godot()
 
 # Websocket server port. Has to match the one in gdserever.gd
 PORT = 9080

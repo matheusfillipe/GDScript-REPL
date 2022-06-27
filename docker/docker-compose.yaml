@@ -6,7 +6,6 @@ services:
   godot:
     build: .
     ports:
-      - "12345:12345"
-      - "12345:12345/udp"
+      - "9080:9080"
     tty: true
     container_name: godot-repl-server
