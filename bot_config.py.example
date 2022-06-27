@@ -1,0 +1,6 @@
+SERVER="irc.example.com"
+PORT=6697
+SSL=True
+NICK="godot"
+CHANNELS=["#bots"]
+PREFIX=": "

@@ -3,3 +3,5 @@ config.py
 docker/godot
 docker/logs/
 venv/
+bot_config.py
+botvenv/
