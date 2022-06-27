@@ -1,4 +1,4 @@
-[![Pypi](https://badge.fury.io/py/re-ircbot.svg)](https://pypi.org/project/re-ircbot/)
+[![Pypi](https://badge.fury.io/py/gdrepl.svg)](https://pypi.org/project/gdrepl/)
 [![Chat with me on irc](https://img.shields.io/badge/-IRC-gray?logo=gitter)](https://mangle.ga/irc)
 
 
