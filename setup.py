@@ -55,10 +55,8 @@ setuptools.setup(
         ],
     },
     packages=setuptools.find_packages(),
+    include_package_data = True,
     install_requires=requirements,
-    package_data={
-        'static': ['gdrepl/*.gd'],
-    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
