@@ -7,6 +7,7 @@ import pexpect
 import os
 import subprocess as sb
 from click_default_group import DefaultGroup
+from pathlib import Path
 from prompt_toolkit import prompt
 from prompt_toolkit.history import InMemoryHistory
 
@@ -19,7 +20,7 @@ STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 
 print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
 
-repl_script_path = "gdserver.gd"
+repl_script_path = str(Path(__file__).parent.resolve() / Path("gdserver.gd"))
 
 
 @click.group(cls=DefaultGroup, default='repl', default_if_no_args=True)
