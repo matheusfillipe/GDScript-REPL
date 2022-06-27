@@ -144,7 +144,7 @@ func _init():
   var err = _server.listen(port)
   if err != OK:
     print("Unable to start server")
-  print("Listening on ", port)
+  print("Gdrepl Listening on ", port)
   while true:
     OS.delay_msec(50)
     _process()

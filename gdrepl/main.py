@@ -16,7 +16,6 @@ STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 
 
-print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
 
 repl_script_path = str(Path(__file__).parent.resolve() / Path("gdserver.gd"))
 
@@ -29,11 +28,11 @@ def cli():
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--godot", default=GODOT, help="Path to godot executable")
 def repl(vi, godot):
+    print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
     if not godot:
         return
     server = pexpect.spawn(f"{godot} --script {repl_script_path}")
-    server.expect("Godot Engine v.*")
-    time.sleep(1)
+    server.expect("Gdrepl Listening on .*")
     client = wsclient()
 
     history = InMemoryHistory()
@@ -71,6 +70,7 @@ def repl(vi, godot):
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--port", default=PORT, help="Port to listen on")
 def client(vi, port):
+    print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
     print("Not launching server..")
     client = wsclient(port=port)
     history = InMemoryHistory()
