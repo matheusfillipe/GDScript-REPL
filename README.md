@@ -1,3 +1,4 @@
+[![asciicast](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk.svg)](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk)
 # GDScript REPL
 
 This project contains:
@@ -18,6 +19,13 @@ This is this still very work in progress and experimental but serves to prove th
 ## Usage
 
 The gdscript server is implemented in a way that it will send the return output to the client but not stdout. So if you type `1+1` you will receive `2` but you can't receive `print(2)` event though that will be still shown on the server's output.
+
+Currently this does support multiline and it wouldn't be trivial to implement but you can fake multiline input in a single line in both the irc bot and REPL by using a `;`. Those will be replaced to `\n` at runtime, for example:
+
+```gdscript
+func inc(value):; var new = value + 1; return value
+```
+
 
 ### CLI
 
