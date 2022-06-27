@@ -2,7 +2,7 @@ import re
 import setuptools
 import subprocess
 
-VERSION = "0.0.1",
+VERSION = "v0.0.1",
 BRANCH = "master"
 
 with open("README.md", "r", encoding="utf-8") as fh:
@@ -23,8 +23,12 @@ def exec(cmd):
 
 def git_version_tag():
     """Get the current git version tag"""
-    branch = exec("git rev-parse --abbrev-ref HEAD")
-    version = re.match(r"^v[0-9]+(\.[0-9]+)*$", exec("git describe --tags --abbrev=0"))
+    try:
+        branch = exec("git rev-parse --abbrev-ref HEAD")
+        version = re.match(r"^v[0-9]+(\.[0-9]+)*$", exec("git describe --tags --abbrev=0"))
+    except subprocess.CalledProcessError:
+        branch = BRANCH
+        version = VERSION
     if branch == BRANCH and version:
         return version[0][1:]
     else:
@@ -43,7 +47,13 @@ setuptools.setup(
     description="Proof of concept repl for godot's gdscript",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/matheusfillipe/gdscript_repl",
+    url="https://github.com/matheusfillipe/GDScript-REPL",
+    py_modules=["gdrepl"],
+    entry_points={
+        'console_scripts': [
+            'gdrepl = gdrepl.main:cli',
+        ],
+    },
     packages=setuptools.find_packages(),
     install_requires=requirements,
     classifiers=[

@@ -3,10 +3,12 @@
 
 This project contains:
 
-- A simple docker file to build godot server for alpine
 - A dockerfile to run godot from alpine
+- A simple docker file to build godot server for alpine
 - A proof of concept gdscript REPL
 - A IRC gdscript REPL bot 
+
+Notice that if all you want is run gdscript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
 
 ## Motivation
 
@@ -15,6 +17,18 @@ Gdscript is a python like language but it lacks a reply. Godot has a built in `g
 That inspired me to try to turn `godot -s` into a repl, creating a [websocket server](https://docs.godotengine.org/en/stable/classes/class_websocketserver.html) that will take any string from any client in, evaluate it by creating new [GDScript](https://docs.godotengine.org/en/stable/classes/class_script.html), attaching that script to a resource node and then calling a function of that node. That requires a lot of hacky string manipulations to keep stuff working and have a separated local and global scopes allowing you to create functions, enums and classes from the repl. 
 
 This is this still very work in progress and experimental but serves to prove the point that a repl for godot would be awesome.
+
+## Installation
+
+Simply:
+```bash
+pip3 install gdrepl
+
+gdrepl
+```
+
+If you want to use the irc bot you will need to clone this repos and follow the instructions for the bot bellow.
+
 
 ## Usage
 
@@ -26,21 +40,46 @@ Currently this does support multiline and it wouldn't be trivial to implement bu
 func inc(value):; var new = value + 1; return value
 ```
 
+For more information check `gdrepl --help`, `gdrepl server --help` etc.
+
+
+## Development
 
 ### CLI
 
 Requires python3
 
-1. Copy `config.py.example` to `config.py`
-2. Edit it for your needs. Ubuntu has `sudo apt install godot3-server` which is very suitable for this. In another distros without that you might want to change `GODOT` to `godot --no-window` to run it headlessly.
+1. Install godot headless. Ubuntu has `sudo apt install godot3-server` which is very suitable for this. In another distros without that the script will fallback to `godot --no-window` to run it headlessly.
 3. You can create a virtual environment or not: `pip3 install requirements.py`  
-4. Run `./main.py`
+4. Run `python -m gdrepl`
 
 With this you will see both stdout and return output in the same window.
 
 ### Server
 
-Run the godot script:
+Start the server with:
+
+```bash
+gdrepl server
+```
+
+```bash
+$ python -m gdrepl --help
+Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'
+Usage: python -m gdrepl [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  repl*   Launch the godot server and start teh repl
+  client  Connects to a running godot repl server
+  server  Starts the gdscript repl websocket server
+
+```
+
+
+Alternatively you can directly run the godot script:
 ```bash
 godot3-server --script gdserver.gd
 # or
@@ -58,7 +97,7 @@ rlwrap websocat ws://127.0.0.1:9080
 
 The problem with this is that stdout and stderr will be displayed on the server while only the return will be shown on the client.
 
-## Environtment variables
+### Environtment variables
 
 If `DEBUG=1` is set then the server will keep writing the formed script to stdout.
 

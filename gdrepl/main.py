@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import time
 
 import click
@@ -11,8 +9,8 @@ from pathlib import Path
 from prompt_toolkit import prompt
 from prompt_toolkit.history import InMemoryHistory
 
-from client import client as wsclient
-from config import GODOT, VI, PORT
+from .client import client as wsclient
+from .config import GODOT, VI, PORT
 
 STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
@@ -104,6 +102,3 @@ def server(port, godot, verbose):
     if verbose:
         env["DEBUG"] = "1"
     sb.run(f"{godot} --script {repl_script_path}", shell=True, env=env)
-
-if __name__ == '__main__':
-    cli()

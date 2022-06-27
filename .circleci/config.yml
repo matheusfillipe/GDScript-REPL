@@ -70,7 +70,7 @@ jobs:
       - run:
           name: Checkout
           command: |
-            git clone https://github.com/matheusfillipe/ircbot.git .
+            git clone https://github.com/matheusfillipe/GDScript-REPL .
             git fetch --all
       - run:
           name: install python dependencies

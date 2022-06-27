@@ -1,5 +1,5 @@
-from find_godot import find_godot
-### GODOT optiosn
+from .find_godot import find_godot
+### GODOT options ###
 # Godot executable
 GODOT = find_godot()
 
