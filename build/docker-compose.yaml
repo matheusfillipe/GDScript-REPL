@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  godot:
+    build: .
+    tty: true
+    container_name: godot-build

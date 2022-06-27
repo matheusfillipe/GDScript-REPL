@@ -1,0 +1,20 @@
+FROM alpine:latest
+
+# Environment Variables
+ENV GODOT_VERSION "3.4.4"
+ENV ARCH "arm64"
+
+# Updates and installs
+RUN apk update
+RUN apk add --no-cache bash wget git libc6-compat scons pkgconf gcc g++ libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev libexecinfo-dev
+
+# Get source code
+RUN wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.31-r0/glibc-2.31-r0.apk
+RUN apk add --allow-untrusted glibc-2.31-r0.apk
+
+# BUILD
+RUN git clone https://github.com/godotengine/godot.git -b ${GODOT_VERSION}-stable --depth=1
+WORKDIR /godot/
+RUN scons arch=${ARCH} platform=server target=release_debug use_llvm=no colored=yes pulseaudio=no p=linuxbsd execinfo=yes CFLAGS="$CFLAGS -fPIC -Wl,-z,relro,-z,now"  CXXFLAGS="$CXXFLAGS -fPIC -Wl,-z,relro,-z,now" LINKFLAGS="$LDFLAGS" -j4 && strip bin/godot*
+
+

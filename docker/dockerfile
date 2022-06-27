@@ -1,0 +1,29 @@
+FROM alpine:latest
+
+# Environment Variables
+ENV GODOT_BINARY "godot"
+
+# Updates and installs
+RUN apk update
+RUN apk add --no-cache bash wget libc6-compat libexecinfo-dev
+
+# Allow this to run Godot
+RUN wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.31-r0/glibc-2.31-r0.apk
+RUN apk add --allow-untrusted glibc-2.31-r0.apk
+
+# Download Godot, version is set from environment variables
+COPY ${GODOT_BINARY} /usr/bin/godot 
+RUN chmod +x /usr/bin/godot
+
+# Make directory and user to run unpriviledged
+RUN addgroup -S godot && adduser -S godot -G godot
+USER godot
+WORKDIR /home/godot
+
+RUN mkdir ~/.cache \
+  && mkdir -p ~/.config/godot
+
+# Check if godot can run
+RUN ldd /usr/bin/godot
+
+ENTRYPOINT ["/usr/bin/godot", "-s", "script.gd"]

@@ -1,0 +1,5 @@
+__pycache__/
+config.py
+docker/godot
+docker/logs/
+venv/
