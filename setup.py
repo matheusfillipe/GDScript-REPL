@@ -1,6 +1,7 @@
 import re
-import setuptools
 import subprocess
+
+import setuptools
 
 VERSION = "v0.0.1",
 BRANCH = "master"
@@ -9,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 def requirements():
-    """Build the requirements list for this project"""
+    """Build the requirements list for this project."""
     requirements_list = []
 
     with open('requirements.txt') as requirements:
@@ -18,11 +19,11 @@ def requirements():
     return requirements_list
 
 def exec(cmd):
-    """Execute a command and return the output"""
+    """Execute a command and return the output."""
     return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode().strip()
 
 def git_version_tag():
-    """Get the current git version tag"""
+    """Get the current git version tag."""
     try:
         branch = exec("git rev-parse --abbrev-ref HEAD")
         version = re.match(r"^v[0-9]+(\.[0-9]+)*$", exec("git describe --tags --abbrev=0"))
@@ -55,7 +56,7 @@ setuptools.setup(
         ],
     },
     packages=setuptools.find_packages(),
-    include_package_data = True,
+    include_package_data=True,
     install_requires=requirements,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
