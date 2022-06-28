@@ -21,8 +21,8 @@ REPL_TTL = 60 * 60 * 2
 DOCKER_COMMAND = DOCKER_COMMAND % str(Path(script_dir()).parent)
 COMMAND = f'gdrepl --command "{DOCKER_COMMAND}"'
 
-user_repls = TTLCache(maxsize=5, ttl=REPL_TTL)
-user_history = TTLCache(maxsize=32, ttl=REPL_TTL)
+user_repls = TTLCache(maxsize=4, ttl=REPL_TTL)
+user_history = TTLCache(maxsize=128, ttl=REPL_TTL)
 
 utils.setHelpHeader(
     "USE: {PREFIX} [gdscript command here]       - (Notice the space)")
@@ -83,8 +83,8 @@ def run_command(msg: Message, text: str):
             if user not in user_repls:
                 info(f"Creating new repl for {user}")
                 user_repls[user] = replwrap.REPLWrapper(
-                    COMMAND, "gdscript <", prompt_change=None)
-            reply(msg, user_repls[user].run_command(text, timeout=2))
+                    COMMAND, ">>> ", prompt_change=None)
+            reply(msg, user_repls[user].run_command(text, timeout=10))
 
             if user not in user_history:
                 user_history[user] = []
@@ -93,7 +93,7 @@ def run_command(msg: Message, text: str):
         t = threading.Thread(target=__run_command,
                              args=(msg, text), daemon=True)
         t.start()
-        t.join(2)
+        t.join(10)
         if t.is_alive():
             gdscripttop: replwrap.REPLWrapper = user_repls[msg.nick]
             gdscripttop.child.kill(signal.SIGINT)
@@ -162,5 +162,6 @@ async def onConnect(bot: IrcBot):
 
 if __name__ == "__main__":
     print("DOCKER COMMAND:", DOCKER_COMMAND)
+    print("REPL COMMAND:", COMMAND)
     bot = IrcBot(SERVER, PORT, NICK, use_ssl=SSL)
     bot.runWithCallback(onConnect)
