@@ -1,6 +1,5 @@
 import os
 import subprocess as sb
-import time
 from pathlib import Path
 
 import click
@@ -17,6 +16,7 @@ from .constants import GODOT, KEYWORDS, PORT, VI
 
 STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
+TIMEOUT = 0.2
 
 
 def script_dir():
@@ -34,7 +34,8 @@ def cli():
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--godot", default=GODOT, help="Path to godot executable")
 @click.option("--command", default="", help="Custom command to run the server script with")
-def repl(vi, godot, command):
+@click.option("--timeout", default=TIMEOUT, help="Time to wait for godot output")
+def run(vi, godot, command, timeout):
     print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
     if not godot:
         return
@@ -70,16 +71,15 @@ def repl(vi, godot, command):
             print(resp)
 
         try:
-            server.expect(STDOUT_MARKER_START, 0.2)
-            time.sleep(0.1)
-            server.expect(STDOUT_MARKER_END, 0.1)
+            server.expect(STDOUT_MARKER_START, timeout=timeout)
+            server.expect(STDOUT_MARKER_END, timeout=timeout)
             output = server.before.decode()
             if output.strip():
                 print(output.strip())
         except pexpect.exceptions.TIMEOUT:
             pass
         try:
-            server.expect("SCRIPT ERROR: (.+)", 0.2)
+            server.expect("SCRIPT ERROR: (.+)", timeout=timeout)
             print(server.match.group(1).decode())
         except pexpect.exceptions.TIMEOUT:
             pass
