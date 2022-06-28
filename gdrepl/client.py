@@ -24,3 +24,5 @@ class client:
 
         if resp == "Cleared":
             return "Environment cleared!"
+
+        return resp

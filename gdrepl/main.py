@@ -46,10 +46,10 @@ def repl(vi, godot):
         if len(cmd.strip()) == 0:
             continue
 
+        history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
         resp = client.send(cmd)
         if resp:
             print(resp)
-        history.append_string(cmd)
 
         try:
             server.expect(STDOUT_MARKER_START, 0.2)
@@ -87,7 +87,8 @@ def client(vi, port):
         resp = client.send(cmd)
         if resp:
             print(resp)
-        history.append_string(cmd)
+
+        history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
 
 @cli.command(help="Starts the gdscript repl websocket server")
 @click.option("--godot", default=GODOT, help="Path to godot executable")

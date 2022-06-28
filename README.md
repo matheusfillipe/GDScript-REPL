@@ -3,13 +3,28 @@
 
 
 [![asciicast](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk.svg)](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk)
+
+* [Motivation](#motivation)
+* [Installation](#installation)
+* [Usage](#usage)
+* [Development](#development)
+  * [CLI](#cli)
+  * [Server](#server)
+  * [Environtment variables](#environtment-variables)
+  * [Why the weird approach](#why-the-weird-approach)
+* [Run the IRC bot](#run-the-irc-bot)
+* [Docker](#docker)
+  * [Build GODOT](#build-godot)
+  * [Build and image for the irc bot](#build-and-image-for-the-irc-bot)
+  * [Why the dockerfile doesn't download godot binary automatically?](#why-the-dockerfile-doesn't-download-godot-binary-automatically?)
+
 # GDScript REPL
 
-This project contains:
+This repo contains:
 
-- A dockerfile to run godot from alpine
-- A simple docker file to build godot server for alpine
 - A proof of concept gdscript REPL
+- A dockerfile to build godot server for alpine
+- A dockerfile to run godot from alpine
 - A IRC gdscript REPL bot 
 
 Notice that if all you want is run gdscript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
@@ -101,6 +116,9 @@ rlwrap websocat ws://127.0.0.1:9080
 
 The problem with this is that stdout and stderr will be displayed on the server while only the return will be shown on the client.
 
+To connect to the server you can run: `gdrepl client`. You can then type `help` to see what special server commands you can run like `clear`.
+
+
 ### Environtment variables
 
 If `DEBUG=1` is set then the server will keep writing the formed script to stdout.
@@ -113,13 +131,16 @@ My main goal was to make a safe to host irc bot repl, spawning a docker image fo
 
 ## Run the IRC bot
 
-Requires python3
+Requires python3 and a godot image. Use the `irc_bot` folder.
 
-1. Build a docker image for it (See section bellow).
-2. Copy bot_`config.py.example` to bot_`config.py`
-3. Edit it for your needs. 
-4. You can create a virtual environment or not: `pip3 install bot_requirements.py`  
-5. Run `./bot.py`
+1. Install gdrepl: `pip3 install gdrepl`
+2. Build a docker image for it (See section bellow).
+3. Copy `config.py.example` to `config.py`
+4. Edit it for your needs. 
+5. You can create a virtual environment or not: `pip3 install bot/requirements.py`  
+6. Run `./bot.py`
+
+To keep it running and manage it i recommend pm2: https://pm2.keymetrics.io/
 
 
 
@@ -144,3 +165,6 @@ scons arch=arm64 platform=server target=release_debug use_llvm=no colored=yes pu
 strip bin/godot*
 ```
 
+# TODO
+
+- [ ] Have the gdscript websocket server be a proper api using json or something less hacky

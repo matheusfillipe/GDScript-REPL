@@ -3,6 +3,19 @@
 
 extends SceneTree
 
+# Simple protocol:
+# Send anything else to evaluate as godot code
+# Commands:
+const commands = {
+  "clear": "clears the script buffer for the current session",
+  "script_local": "Sends back the generated local",
+  "script_global": "Sends back the generated global",
+  "script_code": "Sends back the generated full runtime script code",
+  "delline_local": "Deletes certain line number from the local script",
+  "delline_global": "Deletes certain line number from the global script",
+}
+
+
 # The port we will listen to.
 const PORT = 9080
 # Our WebSocketServer instance.
@@ -30,7 +43,7 @@ class Session:
   var is_global = false
 
   # Generates script code for the session
-  func code():
+  func code() -> String:
     if len(local.strip_edges()) == 0:
       return global
 
@@ -52,6 +65,23 @@ class Session:
 
     _local += "  return " + lines[-1]
     return global + "\n" + _local
+
+  func delline(num: int, code: String) -> String:
+    var lines = Array(code.split("\n"))
+    var new_code = ""
+    var i = 1
+    for line in lines:
+      if i == num:
+        continue
+      new_code += line + "\n"
+      i += 1
+    return new_code
+
+  func dellocal(line: int):
+    local = delline(line, local)
+
+  func delglobal(line: int):
+    global = delline(line, global)
 
   func copy():
     var s = Session.new()
@@ -210,12 +240,60 @@ func _on_data(id):
     session = OS.get_environment("SESSION")
 
 
-  if data.strip_edges().to_lower() == "clear":
-    clear(session)
-    send(id, "Cleared")
+  # Commands without arguments
+  var cmd = data.strip_edges().to_lower()
+  var response = ""
+  var has_command = true
+  match cmd :
+    "help":
+      var help = ""
+      for cmd in commands:
+        help += cmd + ": " + commands[cmd] + "\n"
+      response = help
+
+    "clear":
+      clear(session)
+      response = "Cleared"
+
+    "script_local":
+      if session in sessions:
+        response = sessions[session].local
+
+    "script_global":
+      if session in sessions:
+        response = sessions[session].global
+
+    "script_code":
+      if session in sessions:
+        response = sessions[session].code()
+
+    _: 
+      has_command = false
+
+  if has_command:
+    if len(response) == 0:
+      response = "-"
+    send(id, response)
     return
 
-  send(id, ">> " + exec(data, session))
+  # Commands with arguments
+  cmd = data.strip_edges().split(" ")[0].to_lower()
+  match cmd:
+    "delline_local":
+      sessions[session].dellocal(int(data.split(" ")[1]))
+      response = "Deleted line"
+
+    "delline_global":
+      sessions[session].delglobal(int(data.split(" ")[1]))
+      response = "Deleted line"
+
+    _:
+      response = exec(data, session)
+      send(id, ">> " + response)
+      return
+
+  send(id, response)
+
 
 func send(id, data):
   _server.get_peer(id).put_packet(data.to_utf8())
