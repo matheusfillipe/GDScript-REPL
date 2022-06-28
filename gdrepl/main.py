@@ -33,11 +33,16 @@ def cli():
 @cli.command(help="Launch the godot server and starts the repl")
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--godot", default=GODOT, help="Path to godot executable")
-def repl(vi, godot):
+@click.option("--command", default="", help="Custom command to run the server script with")
+def repl(vi, godot, command):
     print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
     if not godot:
         return
-    server = pexpect.spawn(f"{godot} --script {repl_script_path}")
+    server = None
+    if command:
+        server = pexpect.spawn(command)
+    else:
+        server = pexpect.spawn(f"{godot} --script {repl_script_path}")
     server.expect("Gdrepl Listening on .*")
     client = wsclient()
 
@@ -53,6 +58,11 @@ def repl(vi, godot):
 
         if len(cmd.strip()) == 0:
             continue
+
+        if cmd == "quit":
+            client.send(cmd, False)
+            client.close()
+            break
 
         history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
         resp = client.send(cmd)
@@ -81,6 +91,8 @@ def repl(vi, godot):
 def client(vi, port):
     print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
     print("Not launching server..")
+
+    # TODO avoid repeating this whole code here again
     client = wsclient(port=port)
     history = InMemoryHistory()
     completer = WordCompleter(KEYWORDS, WORD=True)
@@ -94,6 +106,11 @@ def client(vi, port):
 
         if len(cmd.strip()) == 0:
             continue
+
+        if cmd == "quit":
+            client.send(cmd, False)
+            client.close()
+            break
 
         resp = client.send(cmd)
         if resp:

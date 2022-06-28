@@ -8,12 +8,15 @@ class client:
     def close(self):
         self.ws.close()
 
-    def send(self, msg: str) -> str:
+    def send(self, msg: str, get_response=True) -> str:
         """Converts ';' to '\n' and sends the message to the server, returning its response"""
 
         self.ws.send(msg.replace(";", "\n"))
-        resp = self.ws.recv().decode()
 
+        if not get_response:
+            return ""
+
+        resp = self.ws.recv().decode()
         # Return response
         if resp.startswith(">> "):
             if len(resp) > 3:

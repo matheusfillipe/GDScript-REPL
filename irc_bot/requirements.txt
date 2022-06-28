@@ -1,3 +1,4 @@
 re-ircbot==1.6.0
 pyexpect==1.0.21 
 gdrepl
+requests==2.13.0

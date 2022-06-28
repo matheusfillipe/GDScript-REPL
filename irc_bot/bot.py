@@ -1,4 +1,3 @@
-import os
 import re
 import signal
 import threading
@@ -11,34 +10,32 @@ from cachetools import TTLCache
 from IrcBot.bot import IrcBot, Message, utils
 from pexpect import replwrap
 
-from bot_config import (CHANNELS, DOCKER_IMAGE, NICK, PORT, PREFIX,
-                  SERVER, SSL)
+from config import (CHANNELS, NICK, PORT, PREFIX, DOCKER_COMMAND,
+                    SERVER, SSL)
 
 from message_server import listen_loop
 
-user_repls = TTLCache(maxsize=5, ttl=COQ_REPL_TTL)
-user_history = TTLCache(maxsize=32, ttl=COQ_REPL_TTL)
+from gdrepl import script_dir
+
+REPL_TTL = 60 * 60 * 2
+DOCKER_COMMAND = DOCKER_COMMAND % str(Path(script_dir()).parent)
+COMMAND = f'gdrepl --command "{DOCKER_COMMAND}"'
+
+user_repls = TTLCache(maxsize=5, ttl=REPL_TTL)
+user_history = TTLCache(maxsize=32, ttl=REPL_TTL)
 
 utils.setHelpHeader(
-    "USE: {PREFIX} [coq command here]       - (Notice the space)")
+    "USE: {PREFIX} [gdscript command here]       - (Notice the space)")
 utils.setHelpBottom(
-    "Nice tutorial coq at https://learnxinyminutes.com/docs/coq/")
+    "GDscript is the godot game engine language. Tutorial at https://gdscript.com/tutorials/")
 utils.setLogging(10)
 utils.setParseOrderTopBottom(True)
 utils.setPrefix(PREFIX)
 
 info = utils.log
 
-FIFO = NamedTemporaryFile(mode='w+b', prefix='coq-repl-',
+FIFO = NamedTemporaryFile(mode='w+b', prefix='gdrepl-bot',
                           suffix='.fifo', delete=False).name
-COQ_EXPORT_DIR = "./coq-export/"
-
-# If export dir for coq doesn't exist, create it
-if not os.path.exists(COQ_EXPORT_DIR):
-    os.makedirs(COQ_EXPORT_DIR)
-
-# Change working directory to the directory of COQ_EXPORT_DIR
-os.chdir(COQ_EXPORT_DIR)
 
 def ansi2irc(text):
     """Convert ansi colors to irc colors."""
@@ -86,7 +83,7 @@ def run_command(msg: Message, text: str):
             if user not in user_repls:
                 info(f"Creating new repl for {user}")
                 user_repls[user] = replwrap.REPLWrapper(
-                    COQTOP_CMD, "Coq <", prompt_change=None)
+                    COMMAND, "gdscript <", prompt_change=None)
             reply(msg, user_repls[user].run_command(text, timeout=2))
 
             if user not in user_history:
@@ -98,8 +95,8 @@ def run_command(msg: Message, text: str):
         t.start()
         t.join(2)
         if t.is_alive():
-            coqtop: replwrap.REPLWrapper = user_repls[msg.nick]
-            coqtop.child.kill(signal.SIGINT)
+            gdscripttop: replwrap.REPLWrapper = user_repls[msg.nick]
+            gdscripttop.child.kill(signal.SIGINT)
             user_repls.pop(msg.nick, None)
             reply(msg, "Command timed out. I Cleared your environment")
 
@@ -152,23 +149,11 @@ async def onConnect(bot: IrcBot):
                 await bot.send_message(text, channel)
 
     async def update_loop():
-        """Update cache to eliminate invalid keys and monitor COQ_EXPORT_DIR."""
+        """Update cache to eliminate invalid keys"""
         global user_repls, user_history
         while True:
             user_repls.pop(None, None)
             user_history.pop(None, None)
-            for file in Path("./").glob("*"):
-                info(f"Found {file=}")
-                if not file.is_file():
-                    continue
-                name = file.name
-                url = paste(file.read_text())
-
-                # TODO what channel should we send this to?
-                for channel in CHANNELS:
-                    await bot.send_message(f"{name}: {url}", channel)
-                file.unlink()
-
             await trio.sleep(3)
 
     async with trio.open_nursery() as nursery:
@@ -176,5 +161,6 @@ async def onConnect(bot: IrcBot):
         nursery.start_soon(update_loop)
 
 if __name__ == "__main__":
+    print("DOCKER COMMAND:", DOCKER_COMMAND)
     bot = IrcBot(SERVER, PORT, NICK, use_ssl=SSL)
     bot.runWithCallback(onConnect)

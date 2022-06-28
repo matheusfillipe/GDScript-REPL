@@ -13,6 +13,7 @@ const commands = {
   "script_code": "Sends back the generated full runtime script code",
   "delline_local": "Deletes certain line number from the local script",
   "delline_global": "Deletes certain line number from the global script",
+  "quit": "stops this server",
 }
 
 
@@ -24,6 +25,8 @@ var port = PORT
 
 var sessions = {}
 var debug = false
+
+var loop = true
 
 # These are scope initializer keywords_global. In gdscript these can't
 # go inside another one of themselves
@@ -175,7 +178,7 @@ func _init():
   if err != OK:
     print("Unable to start server")
   print("Gdrepl Listening on ", port)
-  while true:
+  while loop:
     OS.delay_msec(50)
     _process()
 
@@ -245,10 +248,15 @@ func _on_data(id):
   var response = ""
   var has_command = true
   match cmd :
+    "quit":
+      _server.stop()
+      loop = false
+      quit()
+      return
     "help":
       var help = ""
-      for cmd in commands:
-        help += cmd + ": " + commands[cmd] + "\n"
+      for c in commands:
+        help += c + ": " + commands[c] + "\n"
       response = help
 
     "clear":

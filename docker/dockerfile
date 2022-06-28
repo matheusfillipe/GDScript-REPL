@@ -26,4 +26,4 @@ RUN mkdir ~/.cache \
 # Check if godot can run
 RUN ldd /usr/bin/godot
 
-ENTRYPOINT ["/usr/bin/godot", "-s", "script.gd"]
+ENTRYPOINT ["godot", "-s", "gdserver.gd"]

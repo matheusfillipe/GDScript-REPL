@@ -1,6 +1,8 @@
-SERVER="irc.example.com"
+SERVER="irc.dot.org.es"
 PORT=6697
+DOCKER_IMAGE="docker_godot"
 SSL=True
-NICK="godot"
+NICK="_gdbot"
 CHANNELS=["#bots"]
 PREFIX=": "
+DOCKER_COMMAND = f"docker run --rm -v %s:/home/godot/ -p 127.0.0.1:9080:9080 {DOCKER_IMAGE}"
