@@ -1,3 +1,4 @@
+[![CircleCI Build Status](https://circleci.com/gh/matheusfillipe/GDScript-REPL.svg?style=shield)](https://circleci.com/gh/matheusfillipe/GDScript-REPL)
 [![Pypi](https://badge.fury.io/py/gdrepl.svg)](https://pypi.org/project/gdrepl/)
 [![Chat with me on irc](https://img.shields.io/badge/-IRC-gray?logo=gitter)](https://mangle.ga/irc)
 
