@@ -1,30 +1,36 @@
+import os
+import subprocess as sb
 import time
+from pathlib import Path
 
 import click
 import pexpect
-import os
-import subprocess as sb
 from click_default_group import DefaultGroup
-from pathlib import Path
-from prompt_toolkit import prompt
+from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit.shortcuts import prompt
+from pygments.lexers.gdscript import GDScriptLexer
 
 from .client import client as wsclient
-from .config import GODOT, VI, PORT
+from .constants import GODOT, KEYWORDS, PORT, VI
 
 STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 
 
+def script_dir():
+    return str(Path(__file__).parent.resolve() / Path("gdserver.gd"))
 
-repl_script_path = str(Path(__file__).parent.resolve() / Path("gdserver.gd"))
+repl_script_path = script_dir()
 
 
 @click.group(cls=DefaultGroup, default='repl', default_if_no_args=True)
 def cli():
     pass
 
-@cli.command(help="Launch the godot server and start teh repl")
+
+@cli.command(help="Launch the godot server and starts the repl")
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--godot", default=GODOT, help="Path to godot executable")
 def repl(vi, godot):
@@ -36,9 +42,11 @@ def repl(vi, godot):
     client = wsclient()
 
     history = InMemoryHistory()
+    completer = WordCompleter(KEYWORDS, WORD=True)
     while True:
         try:
-            cmd = prompt(">>> ", vi_mode=vi, history=history)
+            cmd = prompt(">>> ", vi_mode=vi, history=history,
+                         lexer=PygmentsLexer(GDScriptLexer), completer=completer)
         except (EOFError, KeyboardInterrupt):
             client.close()
             break
@@ -66,6 +74,7 @@ def repl(vi, godot):
         except pexpect.exceptions.TIMEOUT:
             pass
 
+
 @cli.command(help="Connects to a running godot repl server")
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--port", default=PORT, help="Port to listen on")
@@ -74,9 +83,11 @@ def client(vi, port):
     print("Not launching server..")
     client = wsclient(port=port)
     history = InMemoryHistory()
+    completer = WordCompleter(KEYWORDS, WORD=True)
     while True:
         try:
-            cmd = prompt(">>> ", vi_mode=VI, history=history)
+            cmd = prompt(">>> ", vi_mode=vi, history=history,
+                         lexer=PygmentsLexer(GDScriptLexer), completer=completer)
         except (EOFError, KeyboardInterrupt):
             client.close()
             break
@@ -89,6 +100,7 @@ def client(vi, port):
             print(resp)
 
         history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
+
 
 @cli.command(help="Starts the gdscript repl websocket server")
 @click.option("--godot", default=GODOT, help="Path to godot executable")

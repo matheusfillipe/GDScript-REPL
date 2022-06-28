@@ -1,5 +1,5 @@
 from websocket import create_connection
-from .config import HOST, PORT
+from .constants import HOST, PORT
 
 class client:
     def __init__(self, host=HOST, port=PORT):
