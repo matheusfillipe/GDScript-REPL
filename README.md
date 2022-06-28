@@ -1,8 +1,7 @@
 [![Pypi](https://badge.fury.io/py/gdrepl.svg)](https://pypi.org/project/gdrepl/)
 [![Chat with me on irc](https://img.shields.io/badge/-IRC-gray?logo=gitter)](https://mangle.ga/irc)
 
-
-[![asciicast](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk.svg)](https://asciinema.org/a/9Ks2kbs2QYxO56GoqW11GL8qk)
+[![demo](https://user-images.githubusercontent.com/24435787/176273963-dfce8324-665d-4136-a155-66d8db687332.gif)](https://asciinema.org/a/504811)
 
 * [Motivation](#motivation)
 * [Installation](#installation)
@@ -16,7 +15,9 @@
 * [Docker](#docker)
   * [Build GODOT](#build-godot)
   * [Build and image for the irc bot](#build-and-image-for-the-irc-bot)
-  * [Why the dockerfile doesn't download godot binary automatically?](#why-the-dockerfile-doesn't-download-godot-binary-automatically?)
+  * [Why the dockerfile doesn't download godot binary automatically?](#why-the-dockerfile-doesnt-download-godot-binary-automatically)
+* [TODO](#todo)
+
 
 # GDScript REPL
 
