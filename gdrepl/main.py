@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess as sb
 from pathlib import Path
 
@@ -22,10 +23,11 @@ TIMEOUT = 0.2
 def script_dir():
     return str(Path(__file__).parent.resolve() / Path("gdserver.gd"))
 
+
 repl_script_path = script_dir()
 
 
-@click.group(cls=DefaultGroup, default='repl', default_if_no_args=True)
+@click.group(cls=DefaultGroup, default="run", default_if_no_args=True)
 def cli():
     pass
 
@@ -33,10 +35,14 @@ def cli():
 @cli.command(help="Launch the godot server and starts the repl")
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--godot", default=GODOT, help="Path to godot executable")
-@click.option("--command", default="", help="Custom command to run the server script with")
+@click.option(
+    "--command", default="", help="Custom command to run the server script with"
+)
 @click.option("--timeout", default=TIMEOUT, help="Time to wait for godot output")
 def run(vi, godot, command, timeout):
-    print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
+    print(
+        "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
+    )
     if not godot:
         return
     server = None
@@ -51,8 +57,13 @@ def run(vi, godot, command, timeout):
     completer = WordCompleter(KEYWORDS, WORD=True)
     while True:
         try:
-            cmd = prompt(">>> ", vi_mode=vi, history=history,
-                         lexer=PygmentsLexer(GDScriptLexer), completer=completer)
+            cmd = prompt(
+                ">>> ",
+                vi_mode=vi,
+                history=history,
+                lexer=PygmentsLexer(GDScriptLexer),
+                completer=completer,
+            )
         except (EOFError, KeyboardInterrupt):
             client.close()
             break
@@ -79,8 +90,10 @@ def run(vi, godot, command, timeout):
         except pexpect.exceptions.TIMEOUT:
             pass
         try:
-            server.expect("SCRIPT ERROR: (.+)", timeout=timeout)
-            print(server.match.group(1).decode())
+            server.expect(r"SCRIPT ERROR:(.+)", timeout=timeout)
+            error = server.match.group(1).decode().strip()
+            error = re.sub("\r\n" + r".*ERROR:.* Method failed\..*" + "\r\n.*", "", error)
+            print(error)
         except pexpect.exceptions.TIMEOUT:
             pass
 
@@ -89,7 +102,9 @@ def run(vi, godot, command, timeout):
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--port", default=PORT, help="Port to listen on")
 def client(vi, port):
-    print("Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'")
+    print(
+        "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
+    )
     print("Not launching server..")
 
     # TODO avoid repeating this whole code here again
@@ -98,8 +113,13 @@ def client(vi, port):
     completer = WordCompleter(KEYWORDS, WORD=True)
     while True:
         try:
-            cmd = prompt(">>> ", vi_mode=vi, history=history,
-                         lexer=PygmentsLexer(GDScriptLexer), completer=completer)
+            cmd = prompt(
+                ">>> ",
+                vi_mode=vi,
+                history=history,
+                lexer=PygmentsLexer(GDScriptLexer),
+                completer=completer,
+            )
         except (EOFError, KeyboardInterrupt):
             client.close()
             break
