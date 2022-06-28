@@ -3,6 +3,19 @@
 
 [![demo](https://user-images.githubusercontent.com/24435787/176273963-dfce8324-665d-4136-a155-66d8db687332.gif)](https://asciinema.org/a/504811)
 
+# GDScript REPL
+
+This repo contains:
+
+- A proof of concept gdscript REPL
+- A dockerfile to build godot server for alpine
+- A dockerfile to run godot from alpine
+- A IRC gdscript REPL bot 
+
+Notice that if all you want is run gdscript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
+
+#
+##### Table of Contents  
 * [Motivation](#motivation)
 * [Installation](#installation)
 * [Usage](#usage)
@@ -19,16 +32,6 @@
 * [TODO](#todo)
 
 
-# GDScript REPL
-
-This repo contains:
-
-- A proof of concept gdscript REPL
-- A dockerfile to build godot server for alpine
-- A dockerfile to run godot from alpine
-- A IRC gdscript REPL bot 
-
-Notice that if all you want is run gdscript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
 
 ## Motivation
 
