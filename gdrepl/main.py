@@ -5,11 +5,11 @@ from pathlib import Path
 
 import click
 import pexpect
+from types import FunctionType
 from dataclasses import dataclass
 from click_default_group import DefaultGroup
-from prompt_toolkit.completion import (Completer, Completion, NestedCompleter,
-                                       PathCompleter, WordCompleter,
-                                       merge_completers)
+from prompt_toolkit.completion import (Completer, PathCompleter, WordCompleter)
+from prompt_toolkit.document import Document
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import prompt
@@ -17,10 +17,12 @@ from pygments.lexers.gdscript import GDScriptLexer
 
 from .client import client as wsclient
 from .constants import GODOT, KEYWORDS, PORT, VI
+from .commands import loadscript, savescript
 
 STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 TIMEOUT = 0.2
+EMPTY_COMPLETER = WordCompleter([])
 
 
 def script_dir():
@@ -31,11 +33,14 @@ repl_script_path = script_dir()
 
 history = InMemoryHistory()
 
+def EMPTYFUNC(*args):
+    pass
 
 @dataclass
 class Command:
-    completer: Completer = None
+    completer: Completer = EMPTY_COMPLETER
     help: str = ""
+    do: FunctionType = EMPTYFUNC
 
 
 @dataclass
@@ -45,12 +50,18 @@ class PromptOptions:
 
 
 class CustomCompleter(Completer):
+    """Auto completion and commands"""
+
     commands = {
-        "load": Command(completer=PathCompleter(), help="Load .gd file into this session"),
+        "load": Command(completer=PathCompleter(), help="Load .gd file into this session", do=loadscript),
+        "save": Command(completer=PathCompleter(), help="Save this session to .gd file", do=savescript),
+        "quit": Command(help="Finishes this repl"),
+        "help": Command(help="Displays this message"),
     }
 
     def __init__(self):
-        self.word_completer = WordCompleter(KEYWORDS, WORD=True)
+        self.word_completer = WordCompleter(
+            KEYWORDS + list(CustomCompleter.commands.keys()), WORD=True)
         self.document = None
         self.iterator = None
 
@@ -62,19 +73,22 @@ class CustomCompleter(Completer):
         if len(document.text_before_cursor.split(" ")[-1]) < 1:
             return
 
-        if document != self.document:
+        cmd = document.text.split()[0]
+        if cmd in CustomCompleter.commands and len(document.text_before_cursor.strip()) > len(cmd):
+            sub_doc = Document(document.text[len(cmd) + 1:])
+            self._create_iterator(CustomCompleter.commands[cmd].completer,
+                                  sub_doc, complete_event)
+
+        elif document != self.document:
             self.document = document
-            if document.text.strip() in CustomCompleter.commands:
-                self._create_iterator(CustomCompleter.commands[document.text.strip()].completer,
-                                      document, complete_event)
-            else:
-                self._create_iterator(self.word_completer,
-                                      document, complete_event)
+            self._create_iterator(self.word_completer,
+                                  document, complete_event)
         for w in self.iterator:
             yield w
 
 
 completer = CustomCompleter()
+
 
 def _prompt(vi):
     return prompt(
@@ -122,6 +136,11 @@ def repl_loop(client, options: PromptOptions, server=None):
             client.close()
             break
 
+        if cmd.split()[0] != "help" and cmd.split()[0] in CustomCompleter.commands:
+            command = CustomCompleter.commands[cmd.split()[0]]
+            command.do(client, cmd.split()[1:])
+            continue
+
         history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
         resp = client.send(cmd)
         if resp:
@@ -134,7 +153,6 @@ def repl_loop(client, options: PromptOptions, server=None):
             print("CLIENT COMMANDS")
             for cmd in CustomCompleter.commands:
                 print(f"{cmd}: {CustomCompleter.commands[cmd].help}")
-
 
 
 @click.group(cls=DefaultGroup, default="run", default_if_no_args=True)

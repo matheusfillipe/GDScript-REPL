@@ -37,7 +37,7 @@ const keywords_local = ["return", "print", "if", "else", "while", "for", "break"
 
 # Function that will be called on eval
 # This means that users wont be able to define this name
-const mainfunc = "___AijdkjsdijKjdkJsd"
+const mainfunc = "___eval"
 const main = "func " + mainfunc + "():\n"
 
 class Session:
