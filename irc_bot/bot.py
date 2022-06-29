@@ -1,3 +1,4 @@
+
 import re
 import signal
 import threading
@@ -14,11 +15,11 @@ from config import (CHANNELS, NICK, PORT, PREFIX, DOCKER_COMMAND,
                     SERVER, SSL)
 
 from message_server import listen_loop
-
-from gdrepl import script_dir
+file
+from gdrepl import script_file
 
 REPL_TTL = 60 * 60 * 2
-DOCKER_COMMAND = DOCKER_COMMAND % str(Path(script_dir()).parent)
+DOCKER_COMMAND = DOCKER_COMMAND % str(Path(script_file()).parent)
 COMMAND = f'gdrepl --command "{DOCKER_COMMAND}"'
 
 user_repls = TTLCache(maxsize=4, ttl=REPL_TTL)

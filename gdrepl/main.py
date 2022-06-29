@@ -17,17 +17,11 @@ from pygments.lexers.gdscript import GDScriptLexer
 from .client import client as wsclient
 from .constants import GODOT, KEYWORDS, PORT, VI
 from .commands import (Command, COMMANDS)
+from .find_godot import godot_command
 
 STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 TIMEOUT = 0.2
-
-
-def script_dir():
-    return str(Path(__file__).parent.resolve() / Path("gdserver.gd"))
-
-
-repl_script_path = script_dir()
 
 history = InMemoryHistory()
 
@@ -169,7 +163,7 @@ def run(vi, godot, command, timeout):
     if command:
         server = pexpect.spawn(command)
     else:
-        server = pexpect.spawn(f"{godot} --script {repl_script_path}")
+        server = pexpect.spawn(godot_command(godot))
     server.expect("Gdrepl Listening on .*")
     client = wsclient()
 
@@ -202,4 +196,4 @@ def server(port, godot, verbose):
         env["PORT"] = str(port)
     if verbose:
         env["DEBUG"] = "1"
-    sb.run(f"{godot} --script {repl_script_path}", shell=True, env=env)
+    sb.run(godot_command(godot), shell=True, env=env)
