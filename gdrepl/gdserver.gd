@@ -254,10 +254,10 @@ func _on_data(id):
       quit()
       return
     "help":
-      var help = ""
+      response = "GDREPL Server Help\n"
       for c in commands:
-        help += c + ": " + commands[c] + "\n"
-      response = help
+        response += c + ": " + commands[c] + "\n"
+      response += "\n"
 
     "clear":
       clear(session)

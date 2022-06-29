@@ -5,8 +5,11 @@ from pathlib import Path
 
 import click
 import pexpect
+from dataclasses import dataclass
 from click_default_group import DefaultGroup
-from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.completion import (Completer, Completion, NestedCompleter,
+                                       PathCompleter, WordCompleter,
+                                       merge_completers)
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import prompt
@@ -25,6 +28,113 @@ def script_dir():
 
 
 repl_script_path = script_dir()
+
+history = InMemoryHistory()
+
+
+@dataclass
+class Command:
+    completer: Completer = None
+    help: str = ""
+
+
+@dataclass
+class PromptOptions:
+    vi: bool = False
+    timeout: int = TIMEOUT
+
+
+class CustomCompleter(Completer):
+    commands = {
+        "load": Command(completer=PathCompleter(), help="Load .gd file into this session"),
+    }
+
+    def __init__(self):
+        self.word_completer = WordCompleter(KEYWORDS, WORD=True)
+        self.document = None
+        self.iterator = None
+
+    def _create_iterator(self, completer, document, complete_event):
+        self.iterator = completer.get_completions(document, complete_event)
+
+    def get_completions(self, document, complete_event):
+        # Only complete after 1st character of last word
+        if len(document.text_before_cursor.split(" ")[-1]) < 1:
+            return
+
+        if document != self.document:
+            self.document = document
+            if document.text.strip() in CustomCompleter.commands:
+                self._create_iterator(CustomCompleter.commands[document.text.strip()].completer,
+                                      document, complete_event)
+            else:
+                self._create_iterator(self.word_completer,
+                                      document, complete_event)
+        for w in self.iterator:
+            yield w
+
+
+completer = CustomCompleter()
+
+def _prompt(vi):
+    return prompt(
+        ">>> ",
+        vi_mode=vi,
+        history=history,
+        lexer=PygmentsLexer(GDScriptLexer),
+        completer=completer,
+    )
+
+
+def wait_and_print_server(server, timeout):
+    try:
+        server.expect(STDOUT_MARKER_START, timeout=timeout)
+        server.expect(STDOUT_MARKER_END, timeout=timeout)
+        output = server.before.decode()
+        if output.strip():
+            print(output.strip())
+    except pexpect.exceptions.TIMEOUT:
+        pass
+    try:
+        server.expect(r"SCRIPT ERROR:(.+)", timeout=timeout)
+        error = server.match.group(1).decode().strip()
+        error = re.sub(
+            "\r\n" + r".*ERROR:.* Method failed\..*" + "\r\n.*", "", error
+        )
+        print(error)
+    except pexpect.exceptions.TIMEOUT:
+        pass
+
+
+def repl_loop(client, options: PromptOptions, server=None):
+    while True:
+        try:
+            cmd = _prompt(options.vi)
+        except (EOFError, KeyboardInterrupt):
+            client.close()
+            break
+
+        if len(cmd.strip()) == 0:
+            continue
+
+        if cmd.strip() == "quit":
+            client.send(cmd, False)
+            client.close()
+            break
+
+        history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
+        resp = client.send(cmd)
+        if resp:
+            print(resp)
+
+        if server is not None:
+            wait_and_print_server(server, options.timeout)
+
+        if cmd.strip() == "help":
+            print("CLIENT COMMANDS")
+            for cmd in CustomCompleter.commands:
+                print(f"{cmd}: {CustomCompleter.commands[cmd].help}")
+
 
 
 @click.group(cls=DefaultGroup, default="run", default_if_no_args=True)
@@ -53,49 +163,7 @@ def run(vi, godot, command, timeout):
     server.expect("Gdrepl Listening on .*")
     client = wsclient()
 
-    history = InMemoryHistory()
-    completer = WordCompleter(KEYWORDS, WORD=True)
-    while True:
-        try:
-            cmd = prompt(
-                ">>> ",
-                vi_mode=vi,
-                history=history,
-                lexer=PygmentsLexer(GDScriptLexer),
-                completer=completer,
-            )
-        except (EOFError, KeyboardInterrupt):
-            client.close()
-            break
-
-        if len(cmd.strip()) == 0:
-            continue
-
-        if cmd == "quit":
-            client.send(cmd, False)
-            client.close()
-            break
-
-        history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
-        resp = client.send(cmd)
-        if resp:
-            print(resp)
-
-        try:
-            server.expect(STDOUT_MARKER_START, timeout=timeout)
-            server.expect(STDOUT_MARKER_END, timeout=timeout)
-            output = server.before.decode()
-            if output.strip():
-                print(output.strip())
-        except pexpect.exceptions.TIMEOUT:
-            pass
-        try:
-            server.expect(r"SCRIPT ERROR:(.+)", timeout=timeout)
-            error = server.match.group(1).decode().strip()
-            error = re.sub("\r\n" + r".*ERROR:.* Method failed\..*" + "\r\n.*", "", error)
-            print(error)
-        except pexpect.exceptions.TIMEOUT:
-            pass
+    repl_loop(client, PromptOptions(vi=vi, timeout=timeout), server)
 
 
 @cli.command(help="Connects to a running godot repl server")
@@ -107,36 +175,9 @@ def client(vi, port):
     )
     print("Not launching server..")
 
-    # TODO avoid repeating this whole code here again
     client = wsclient(port=port)
-    history = InMemoryHistory()
-    completer = WordCompleter(KEYWORDS, WORD=True)
-    while True:
-        try:
-            cmd = prompt(
-                ">>> ",
-                vi_mode=vi,
-                history=history,
-                lexer=PygmentsLexer(GDScriptLexer),
-                completer=completer,
-            )
-        except (EOFError, KeyboardInterrupt):
-            client.close()
-            break
 
-        if len(cmd.strip()) == 0:
-            continue
-
-        if cmd == "quit":
-            client.send(cmd, False)
-            client.close()
-            break
-
-        resp = client.send(cmd)
-        if resp:
-            print(resp)
-
-        history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
+    repl_loop(client, PromptOptions(vi=vi))
 
 
 @cli.command(help="Starts the gdscript repl websocket server")
