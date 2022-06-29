@@ -41,14 +41,16 @@ def loadscript(c: client, args):
 
 def savescript(c: client, args):
     """Saves the contents of the server to the file specified by the args."""
-    code = c.send("script_code")
+    script_global = c.send("script_global")
+    script_local = c.send("script_local")
     # Check if directory exists
     if not os.path.isdir(Path(args[0]).parent):
         print("Directory does not exist")
         return
 
     with open(args[0], 'w') as f:
-        f.write(code)
+        f.write(script_global)
+        f.write(script_local)
     print("\n\nSuccessfully saved script to " + args[0])
 
 
