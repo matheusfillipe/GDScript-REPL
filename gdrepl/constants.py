@@ -14,6 +14,6 @@ VI = False
 
 # Godot keywords
 KEYWORDS = ["if", "elif", "else", "for", "while", "match", "break", "continue", "pass", "return", "class",
-            "class_name", "extends", "is", "as", "self", "tool", "signal", "func", "static", "const", "enum", "var", "print"]
+            "class_name", "extends", "is", "as", "self", "tool", "signal", "func", "static", "const", "enum", "var", "print", "printerr"]
 
 SCRIPT_LOAD_REMOVE_KWDS = ["tool", "extends", "onready", "@onready"]

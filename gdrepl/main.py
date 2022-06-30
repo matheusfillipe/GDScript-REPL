@@ -1,7 +1,6 @@
 import os
 import re
 import subprocess as sb
-from pathlib import Path
 
 import click
 import pexpect
@@ -73,7 +72,7 @@ def _prompt(options, completer):
     )
 
 
-def wait_and_print_server(server, timeout):
+def wait_for_output(server, timeout):
     try:
         server.expect(STDOUT_MARKER_START, timeout=timeout)
         server.expect(STDOUT_MARKER_END, timeout=timeout)
@@ -88,13 +87,13 @@ def wait_and_print_server(server, timeout):
         error = re.sub(
             "\r\n" + r".*ERROR:.* Method failed\..*" + "\r\n.*", "", error
         )
+        # if re.match(r".*SCRIPT ERROR:.*at:.*\(<built-in>:(\d+)\).*", )
         print(error)
     except pexpect.exceptions.TIMEOUT:
         pass
 
 
 def repl_loop(client, options: PromptOptions, server=None):
-
     # Fill out our auto completion with server commands as well
     helpmsg = client.send("help")
     for line in helpmsg.split("\n"):
@@ -138,7 +137,7 @@ def repl_loop(client, options: PromptOptions, server=None):
             print(resp)
 
         if server is not None:
-            wait_and_print_server(server, options.timeout)
+            wait_for_output(server, options.timeout)
 
 
 @click.group(cls=DefaultGroup, default="run", default_if_no_args=True)
@@ -154,9 +153,6 @@ def cli():
 )
 @click.option("--timeout", default=TIMEOUT, help="Time to wait for godot output")
 def run(vi, godot, command, timeout):
-    print(
-        "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
-    )
     if not godot:
         return
     server = None
@@ -164,7 +160,13 @@ def run(vi, godot, command, timeout):
         server = pexpect.spawn(command)
     else:
         server = pexpect.spawn(godot_command(godot))
+    server.expect(r".*Godot Engine (\S+) .*")
+    version = server.match.group(1).decode().strip()
+    print("Godot ", version)
     server.expect("Gdrepl Listening on .*")
+    print(
+        "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
+    )
     client = wsclient()
 
     repl_loop(client, PromptOptions(vi=vi, timeout=timeout), server)
@@ -174,12 +176,12 @@ def run(vi, godot, command, timeout):
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--port", default=PORT, help="Port to listen on")
 def client(vi, port):
+    client = wsclient(port=port)
+
     print(
         "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
     )
     print("Not launching server..")
-
-    client = wsclient(port=port)
 
     repl_loop(client, PromptOptions(vi=vi))
 

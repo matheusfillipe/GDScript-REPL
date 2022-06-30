@@ -33,7 +33,7 @@ var loop = true
 const keywords_global = ["func", "class", "enum", "static", "const", "export"]
 
 # Wont try to return if last line starts with any of those
-const keywords_local = ["return", "print", "if", "else", "while", "for", "break", "continue", "var", "const"]
+const keywords_local = ["return", "if", "else", "while", "for", "break", "continue", "var", "const"]
 
 # Function that will be called on eval
 # This means that users wont be able to define this name
@@ -62,20 +62,22 @@ class Session:
     var _local = main
     var lines = Array(local.strip_edges().split("\n"))
     var last = lines[-1].strip_edges()
-    if last.split(" ")[0] in keywords_local:
-      return global
-
-    if "=" in last and not "==" in last:
-      return global
 
     # In the local scope
     for line in lines.slice(0, len(lines)-1):
       # Removes all calls to print except the last one
-      if line.strip_edges().begins_with("print("):
+      if line.strip_edges().begins_with("print(") or line.strip_edges().begins_with("printerr("):
         continue
       _local += "  " + line + "\n"
 
-    _local += "  return " + lines[-1]
+    # Only put return on local if it is really needed
+    if last.split(" ")[0] in keywords_local:
+      _local += lines[-1]
+    elif "=" in "  " + last and not "==" in last:
+      _local += "  " + lines[-1]
+    else:
+      _local += "  return " + lines[-1]
+
     return global + "\n" + _local
 
   func delline(num: int, code: String) -> String:
@@ -132,7 +134,7 @@ func add_code(code: String, session: String = "main"):
 
 # Executes the the input code and returns the output
 # The code will accumulate on the session
-func exec(input: String, session: String = "main"):
+func exec(input: String, session: String = "main") -> String:
   # Initializes a script for that session
   if not session in sessions:
     sessions[session] = Session.new()
@@ -152,15 +154,14 @@ func exec(input: String, session: String = "main"):
     sessions[session].scope = Scope.Local
     return ""
 
-  var code = sessions[session].code()
   var script = GDScript.new()
-  script.source_code = code
+  script.source_code = sessions[session].code()
+  print_script(script, session)
+
   var err = script.reload()
   if err != OK:
     sessions[session] = before
     return "Err: " + str(err)
-
-  print_script(script, session)
 
   var obj = RefCounted.new()
   obj.set_script(script)
