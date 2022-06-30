@@ -115,14 +115,16 @@ def repl_loop(client, options: PromptOptions, server=None):
     while True:
         try:
             cmd = _prompt(options, completer)
-        except (EOFError, KeyboardInterrupt):
+        except KeyboardInterrupt:
+            continue
+        except EOFError:
             client.close()
             break
 
         if len(cmd.strip()) == 0:
             continue
 
-        if cmd.strip() == "quit":
+        if cmd.strip() in ["quit", "exit"]:
             client.send(cmd, False)
             client.close()
             break
@@ -140,6 +142,11 @@ def repl_loop(client, options: PromptOptions, server=None):
 
         if server is not None:
             wait_for_output(server, options.timeout)
+
+def start_message():
+    print(
+        "Welcome to GDScript REPL. Hit Ctrl+D to exit. If you start having errors type 'clear'"
+    )
 
 
 @click.group(cls=DefaultGroup, default="run", default_if_no_args=True)
@@ -169,14 +176,12 @@ def run(vi, godot, command, timeout):
         server = pexpect.spawn(godot_command(godot), env=env)
     server.expect(r".*Godot Engine (\S+) .*")
     version = server.match.group(1).decode().strip()
-    print("Godot ", version, "listening on ", port)
+    print("Godot", version, "listening on:", port)
 
     server.expect("Gdrepl Listening on .*")
-    print(
-        "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
-    )
-    client = wsclient(port=port)
 
+    start_message()
+    client = wsclient(port=port)
     repl_loop(client, PromptOptions(vi=vi, timeout=timeout), server)
 
 
@@ -185,12 +190,8 @@ def run(vi, godot, command, timeout):
 @click.option("--port", default=PORT, help="Port to connect to")
 def client(vi, port):
     client = wsclient(port=port)
-
-    print(
-        "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
-    )
+    start_message()
     print("Not launching server..")
-
     repl_loop(client, PromptOptions(vi=vi))
 
 
