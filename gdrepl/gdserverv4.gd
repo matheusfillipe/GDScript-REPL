@@ -30,7 +30,7 @@ var loop = true
 
 # These are scope initializer keywords_global. In gdscript these can't
 # go inside another one of themselves
-const keywords_global = ["func", "class", "enum"]
+const keywords_global = ["func", "class", "enum", "static", "const", "export"]
 
 # Wont try to return if last line starts with any of those
 const keywords_local = ["return", "print", "if", "else", "while", "for", "break", "continue", "var", "const"]
@@ -40,10 +40,19 @@ const keywords_local = ["return", "print", "if", "else", "while", "for", "break"
 const mainfunc = "___eval"
 const main = "func " + mainfunc + "():\n"
 
+enum Scope {
+  Global,
+  Yellow,
+  Local,
+}
+
 class Session:
   var global = ""
   var local = ""
-  var is_global = false
+  var scope = Scope.Local
+
+  func is_global() -> bool:
+    return scope == Scope.Global
 
   # Generates script code for the session
   func code() -> String:
@@ -106,20 +115,24 @@ func print_script(script, session):
 func add_code(code: String, session: String = "main"):
   # Switch to global scope on keywords_global
   if code != main and code.strip_edges().split(" ")[0] in keywords_global:
-    sessions[session].is_global = true
-  elif sessions[session].is_global and not code.begins_with(" "):
-    sessions[session].is_global = false
+    sessions[session].scope = Scope.Global
+    if debug:
+      print(">>--------global switch-----------<<")
 
-  if sessions[session].is_global:
+  elif sessions[session].is_global() and (not code.begins_with(" ") or code.strip_edges().begins_with("return ")):
+    sessions[session].scope = Scope.Yellow
+    if debug:
+      print(">>---------global off-------------<<")
+
+  if sessions[session].is_global() or sessions[session].scope == Scope.Yellow:
     sessions[session].global += code
   else:
     sessions[session].local += code
-  print("script_local: ", sessions[session].local)
+
 
 # Executes the the input code and returns the output
 # The code will accumulate on the session
 func exec(input: String, session: String = "main"):
-  input = input.strip_edges()
   # Initializes a script for that session
   if not session in sessions:
     sessions[session] = Session.new()
@@ -132,8 +145,14 @@ func exec(input: String, session: String = "main"):
     if len(line) > 0:
       add_code(line + "\n", session)
 
+  if sessions[session].is_global():
+    return ""
+
+  if sessions[session].scope == Scope.Yellow:
+    sessions[session].scope = Scope.Local
+    return ""
+
   var code = sessions[session].code()
-  print("code is this....\n", code, "\nend of code here...\n")
   var script = GDScript.new()
   script.source_code = code
   var err = script.reload()

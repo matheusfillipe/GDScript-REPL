@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from .client import client
+from .constants import SCRIPT_LOAD_REMOVE_KWDS
 from types import FunctionType
 
 from dataclasses import dataclass
@@ -11,8 +12,10 @@ from prompt_toolkit.completion import (Completer, PathCompleter, WordCompleter)
 
 EMPTY_COMPLETER = WordCompleter([])
 
+
 def EMPTYFUNC(*args):
     pass
+
 
 @dataclass
 class Command:
@@ -33,8 +36,15 @@ def _help(*args):
 def loadscript(c: client, args):
     """Reads all contents from each of the args file and sends it to the server."""
     for file in args:
+        file = str(Path(file).expanduser())
+        if not os.path.isfile(file):
+            print("File does not exist")
+            return
         with open(file, 'r') as f:
-            c.send(f.read(), False)
+            for line in f.readlines():
+                if line.strip() and line.split()[0] in SCRIPT_LOAD_REMOVE_KWDS:
+                    continue
+                c.send(line)
         c.send("\n")
     print("\n\nSuccessfully loaded script(s)")
 
