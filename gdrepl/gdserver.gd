@@ -121,8 +121,8 @@ func add_code(code: String, session: String = "main"):
     if debug:
       print(">>--------global switch-----------<<")
 
-  elif sessions[session].is_global() and (not code.begins_with(" ") or code.strip_edges().begins_with("return ")):
-    sessions[session].scope = Scope.Yellow
+  elif sessions[session].is_global() and not code.begins_with(" "):
+    sessions[session].scope = Scope.Local
     if debug:
       print(">>---------global off-------------<<")
 
