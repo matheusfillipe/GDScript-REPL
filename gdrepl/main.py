@@ -16,11 +16,13 @@ from pygments.lexers.gdscript import GDScriptLexer
 from .client import client as wsclient
 from .constants import GODOT, KEYWORDS, PORT, VI
 from .commands import (Command, COMMANDS)
-from .find_godot import godot_command
+from .find_godot import godot_command, find_available_port, find_godot
 
 STDOUT_MARKER_START = "----------------STDOUT-----------------------"
 STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 TIMEOUT = 0.2
+
+GODOT = find_godot()
 
 history = InMemoryHistory()
 
@@ -156,18 +158,24 @@ def run(vi, godot, command, timeout):
     if not godot:
         return
     server = None
+
+    port = find_available_port(PORT)
+    env = os.environ.copy()
+    env["PORT"] = str(port)
+
     if command:
-        server = pexpect.spawn(command)
+        server = pexpect.spawn(command, env=env)
     else:
-        server = pexpect.spawn(godot_command(godot))
+        server = pexpect.spawn(godot_command(godot), env=env)
     server.expect(r".*Godot Engine (\S+) .*")
     version = server.match.group(1).decode().strip()
-    print("Godot ", version)
+    print("Godot ", version, "listening on ", port)
+
     server.expect("Gdrepl Listening on .*")
     print(
         "Welcome to GDScript REPL. Hit Ctrl+C to exit. If you start having errors type 'clear'"
     )
-    client = wsclient()
+    client = wsclient(port=port)
 
     repl_loop(client, PromptOptions(vi=vi, timeout=timeout), server)
 
@@ -196,6 +204,10 @@ def server(port, godot, verbose):
     env = os.environ.copy()
     if port:
         env["PORT"] = str(port)
+    else:
+        env["PORT"] = str(find_available_port(port))
+
     if verbose:
         env["DEBUG"] = "1"
+
     sb.run(godot_command(godot), shell=True, env=env)

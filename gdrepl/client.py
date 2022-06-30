@@ -3,7 +3,11 @@ from .constants import HOST, PORT
 
 class client:
     def __init__(self, host=HOST, port=PORT):
-        self.ws = create_connection(f"ws://{host}:{port}")
+        try:
+            self.ws = create_connection(f"ws://{host}:{port}")
+        except ConnectionRefusedError:
+            print("Could not connect to server")
+            exit(1)
 
     def close(self):
         self.ws.close()
