@@ -182,7 +182,7 @@ def run(vi, godot, command, timeout):
 
 @cli.command(help="Connects to a running godot repl server")
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
-@click.option("--port", default=PORT, help="Port to listen on")
+@click.option("--port", default=PORT, help="Port to connect to")
 def client(vi, port):
     client = wsclient(port=port)
 
