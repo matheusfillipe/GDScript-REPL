@@ -199,7 +199,6 @@ func exec(input: String, session: String = "main") -> String:
   print_script(script, session)
 
   var err = script.reload()
-  print("after script lrelaodas")
   if err != OK:
     sessions[session].dellast_local()
     return "Err: " + str(err)

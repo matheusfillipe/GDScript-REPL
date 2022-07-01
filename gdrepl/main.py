@@ -64,10 +64,11 @@ class CustomCompleter(Completer):
             yield w
 
 
-def _prompt(options, completer):
+def _prompt(options, completer, multiline=False, ident_level=0):
     return prompt(
-        ">>> ",
+        ">>> " if not multiline else "... ",
         vi_mode=options.vi,
+        default=" " * ident_level,
         history=history,
         lexer=PygmentsLexer(GDScriptLexer),
         completer=completer,
@@ -112,36 +113,59 @@ def repl_loop(client, options: PromptOptions, server=None):
         COMMANDS[cmd] = Command(help=help, send_to_server=True)
 
     completer = CustomCompleter()
+    multiline_buffer = ""
+    multiline = False
+    ident_level = 0
     while True:
         try:
-            cmd = _prompt(options, completer)
+            cmd = _prompt(options, completer, multiline, ident_level)
         except KeyboardInterrupt:
+            multiline = False
+            multiline_buffer = ""
+            ident_level = 0
             continue
         except EOFError:
             client.close()
             break
 
         if len(cmd.strip()) == 0:
-            continue
+            if not multiline:
+                continue
+            multiline = False
 
         if cmd.strip() in ["quit", "exit"]:
             client.send(cmd, False)
             client.close()
             break
 
-        if cmd.split()[0] in COMMANDS:
+        if not multiline and len(cmd.split()) > 0 and cmd.split()[0] in COMMANDS:
             command = COMMANDS[cmd.split()[0]]
             command.do(client, cmd.split()[1:])
             if not command.send_to_server:
                 continue
 
         history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
-        resp = client.send(cmd)
+
+        # Switch to multiline until return is pressed twice
+        if cmd.strip().endswith(":"):
+            multiline = True
+            ident_level = len(cmd.rstrip()) - len(cmd.strip()) + 1
+
+        multiline_buffer += cmd
+        if multiline:
+            multiline_buffer += "\n"
+            continue
+
+        resp = client.send(multiline_buffer)
+        multiline_buffer = ""
+        ident_level = 0
+
         if resp:
             print(resp)
 
         if server is not None:
             wait_for_output(server, options.timeout)
+
 
 def start_message():
     print(
