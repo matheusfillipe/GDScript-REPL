@@ -19,6 +19,8 @@ const commands = {
   "quit": "stops this server",
 }
 
+const STDOUT_MARKER_START = "----------------STDOUT-----------------------"
+const STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 
 # The port we will listen to.
 const PORT = 9080
@@ -218,9 +220,9 @@ func exec(input: String, session: String = "main") -> String:
   obj.set_script(script)
 
   if mainfunc in script.source_code:
-    print("----------------STDOUT-----------------------")
+    print(STDOUT_MARKER_START)
     var res = str(obj.call(mainfunc))
-    print("----------------STDOUT END-----------------------")
+    print(STDOUT_MARKER_END)
     return res
   return ""
 
