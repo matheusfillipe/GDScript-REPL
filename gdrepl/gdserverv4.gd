@@ -11,8 +11,11 @@ const commands = {
   "script_local": "Sends back the generated local",
   "script_global": "Sends back the generated global",
   "script_code": "Sends back the generated full runtime script code",
+  "dellast_local": "Deletes last local scope or code block",
   "delline_local": "Deletes certain line number from the local script",
   "delline_global": "Deletes certain line number from the global script",
+  "delglobal": "Deletes the entire global scope",
+  "dellocal": "Deletes the entire local scope",
   "quit": "stops this server",
 }
 
@@ -33,7 +36,7 @@ var loop = true
 const keywords_global = ["func", "class", "enum", "static", "const", "export"]
 
 # Wont try to return if last line starts with any of those
-const keywords_local = ["return", "if", "else", "while", "for", "break", "continue", "var", "const"]
+const keywords_local = ["if", "else", "while", "for", "break", "continue", "var", "const"]
 
 # Function that will be called on eval
 # This means that users wont be able to define this name
@@ -50,9 +53,35 @@ class Session:
   var global = ""
   var local = ""
   var scope = Scope.Local
+  var last_scope_begin_index
+
+  # Another reason not to add return is if in a local scope like if, elif, for...
+  var local_scope_lock = false
 
   func is_global() -> bool:
     return scope == Scope.Global
+
+  func dellast_local():
+    var i = 0
+    var new_local = ""
+    for line in local.strip_edges().split("\n"):
+      if i >= last_scope_begin_index:
+        break
+      new_local += line + "\n"
+      i += 1
+    print("new_local: ", new_local, "\n----")
+    local = new_local
+
+  func check_scope(line: String, index: int):
+    var has_keyword = line.split(" ")[0] in keywords_local
+    if not local_scope_lock:
+      last_scope_begin_index = index
+    if has_keyword:
+      local_scope_lock = true
+    elif local_scope_lock and not line.strip_edges().begins_with(" "):
+      local_scope_lock = false
+      last_scope_begin_index = index
+    return has_keyword
 
   # Generates script code for the session
   func code() -> String:
@@ -61,19 +90,32 @@ class Session:
 
     var _local = main
     var lines = Array(local.strip_edges().split("\n"))
-    var last = lines[-1].strip_edges()
+    var last_stripped = lines[-1].strip_edges()
 
     # In the local scope
-    for line in lines.slice(0, len(lines)-1):
-      # Removes all calls to print except the last one
-      if line.strip_edges().begins_with("print(") or line.strip_edges().begins_with("printerr("):
-        continue
-      _local += "  " + line + "\n"
+    if len(lines) > 1:
+      var i = 0
+      for line in lines.slice(0, len(lines)-1):
+        var has_keyword = check_scope(line, i)
+        i += 1
+
+        # Removes all calls to print except the last one or keyword one
+        if not has_keyword and (line.strip_edges().begins_with("print(") or line.strip_edges().begins_with("printerr(")):
+          # Replace with something runnable to avoid breaking identation
+          var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
+          _local += "  " + identation + "\"" + line.replace("\"", "\\\"") + "\"" +"\n"
+          continue
+
+        _local += "  " + line + "\n"
+
+    var has_keyword = check_scope(lines[-1], len(lines) - 1)
+    # Don't run local if just started an if statement or so
+    if local_scope_lock:
+      return global
 
     # Only put return on local if it is really needed
-    if last.split(" ")[0] in keywords_local:
-      _local += lines[-1]
-    elif "=" in "  " + last and not "==" in last:
+    var is_assignment = "=" in last_stripped and not "==" in last_stripped
+    if has_keyword or is_assignment or local_scope_lock or lines[-1].begins_with(" "):
       _local += "  " + lines[-1]
     else:
       _local += "  return " + lines[-1]
@@ -138,7 +180,6 @@ func exec(input: String, session: String = "main") -> String:
   if not session in sessions:
     sessions[session] = Session.new()
 
-  var before = sessions[session].copy()
   var lines = Array(input.split("\n"))
 
   # Appends each input line correctly idented to the eval funcion of the script
@@ -158,8 +199,9 @@ func exec(input: String, session: String = "main") -> String:
   print_script(script, session)
 
   var err = script.reload()
+  print("after script lrelaodas")
   if err != OK:
-    sessions[session] = before
+    sessions[session].dellast_local()
     return "Err: " + str(err)
 
   var obj = RefCounted.new()
@@ -293,6 +335,15 @@ func _on_data(id):
     "script_code":
       if session in sessions:
         response = sessions[session].code()
+
+    "dellast_local":
+      sessions[session].dellast_local()
+
+    "delglobal":
+      sessions[session].global = ""
+
+    "dellocal": 
+      sessions[session].local = ""
 
     _: 
       has_command = false
