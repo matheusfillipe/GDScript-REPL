@@ -104,27 +104,26 @@ class Session:
     var last_stripped = lines[-1].strip_edges()
 
     # In the local scope
+    var last_index = get_last_scope_index()
+    var i = 0
     if len(lines) > 1:
-      var i = 0
       local_scope_lock = false
-      var last_index = get_last_scope_index()
       for line in lines.slice(0, len(lines)-1):
         var has_keyword = check_scope(line, i)
 
         # Removes all calls to print except the last one or keyword one
-        var is_print = (line.strip_edges().begins_with("print(") or line.strip_edges().begins_with("printerr("))
-        if not has_keyword and i < last_index and is_print:
-          # Replace with something runnable to avoid breaking identation
+        if i == last_index:
           var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
-          _local += "  " + identation + "\"" + line.replace("\"", "\\\"") + "\"" +"\n"
-        else:
-          _local += "  " + line + "\n"
+          _local += "  " + identation + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
+        _local += "  " + line + "\n"
+
         i += 1
 
+    # Removes all calls to print except the last one or keyword one
+    if i == last_index:
+      _local += "  " + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
+
     var has_keyword = check_scope(lines[-1], len(lines) - 1)
-    # Don't run local if just started an if statement or so
-    if local_scope_lock:
-      return global
 
     # Only put return on local if it is really needed
     var is_assignment = "=" in last_stripped and not "==" in last_stripped

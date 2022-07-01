@@ -132,6 +132,8 @@ def repl_loop(client, options: PromptOptions, server=None):
             if not multiline:
                 continue
             multiline = False
+            # HACK force run
+            multiline_buffer += ";"
 
         if cmd.strip() in ["quit", "exit"]:
             client.send(cmd, False)

@@ -58,7 +58,7 @@ If you want to use the irc bot you will need to clone this repos and follow the 
 
 The gdscript server is implemented in a way that it will send the return output to the client but not stdout. So if you type `1+1` you will receive `2` but you can't receive `print(2)` event though that will be still shown on the server's output.
 
-Currently this does support multiline and it wouldn't be trivial to implement but you can fake multiline input in a single line in both the irc bot and REPL by using a `;`. Those will be replaced to `\n` at runtime, for example:
+Currently this doesn't perfectly support multiline and you have to manually fix the identation sometimes. You can also "fake" multiline input in a single line in both the irc bot and REPL by using a `;`. Those will be replaced to `\n` at runtime, for example:
 
 ```gdscript
 func inc(value):; var new = value + 1; return value
@@ -121,7 +121,25 @@ rlwrap websocat ws://127.0.0.1:9080
 
 The problem with this is that stdout and stderr will be displayed on the server while only the return will be shown on the client.
 
-To connect to the server you can run: `gdrepl client`. You can then type `help` to see what special server commands you can run like `clear`.
+To connect to the server you can run: `gdrepl client`. You can then type `help` to see what special server commands you can run like `script_code` to check what currently generated script is.
+
+Custom server commands are:
+
+```json
+{
+  "reset": "clears the script buffer for the current session",
+  "script_local": "Sends back the generated local",
+  "script_global": "Sends back the generated global",
+  "script_code": "Sends back the generated full runtime script code",
+  "dellast_local": "Deletes last local scope or code block",
+  "delline_local": "Deletes certain line number from the local script",
+  "delline_global": "Deletes certain line number from the global script",
+  "delglobal": "Deletes the entire global scope",
+  "dellocal": "Deletes the entire local scope",
+  "quit": "stops this server",
+}
+
+```
 
 
 ### Environtment variables
@@ -169,6 +187,7 @@ If you are on aarch64 like me (Raspberry Pi 4, oracle Ampere A1) this is how I b
 scons arch=arm64 platform=server target=release_debug use_llvm=no colored=yes pulseaudio=no CFLAGS="$CFLAGS -fPIC -Wl,-z,relro,-z,now"  CXXFLAGS="$CXXFLAGS -fPIC -Wl,-z,relro,-z,now" LINKFLAGS="$LDFLAGS"  -j4
 strip bin/godot*
 ```
+
 
 # TODO
 
