@@ -73,14 +73,24 @@ class Session:
 
   func check_scope(line: String, index: int):
     var has_keyword = line.split(" ")[0] in keywords_local
+    var is_continuation = line.split(" ")[0].rstrip(":") in ["else", "elif"]
+
     if not local_scope_lock:
       last_scope_begin_index = index
-    if has_keyword:
+    if has_keyword and not is_continuation:
       local_scope_lock = true
-    elif local_scope_lock and not line.strip_edges().begins_with(" "):
+    elif not is_continuation and local_scope_lock and not line.begins_with(" "):
       local_scope_lock = false
       last_scope_begin_index = index
     return has_keyword
+
+  func get_last_scope_index():
+    var i = 0
+    for line in local.strip_edges().split("\n"):
+      check_scope(line, i)
+      i += 1
+    return last_scope_begin_index
+
 
   # Generates script code for the session
   func code() -> String:
@@ -94,18 +104,20 @@ class Session:
     # In the local scope
     if len(lines) > 1:
       var i = 0
+      local_scope_lock = false
+      var last_index = get_last_scope_index()
       for line in lines.slice(0, len(lines)-1):
         var has_keyword = check_scope(line, i)
-        i += 1
 
         # Removes all calls to print except the last one or keyword one
-        if not has_keyword and (line.strip_edges().begins_with("print(") or line.strip_edges().begins_with("printerr(")):
+        var is_print = (line.strip_edges().begins_with("print(") or line.strip_edges().begins_with("printerr("))
+        if not has_keyword and i < last_index and is_print:
           # Replace with something runnable to avoid breaking identation
           var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
           _local += "  " + identation + "\"" + line.replace("\"", "\\\"") + "\"" +"\n"
-          continue
-
-        _local += "  " + line + "\n"
+        else:
+          _local += "  " + line + "\n"
+        i += 1
 
     var has_keyword = check_scope(lines[-1], len(lines) - 1)
     # Don't run local if just started an if statement or so
