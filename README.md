@@ -64,6 +64,26 @@ Currently this doesn't perfectly support multiline and you have to manually fix 
 func inc(value):; var new = value + 1; return value
 ```
 
+It supports godot 3 and 4. If you dont have godot on your path use the `--godot` parameter to pass it or `--command` to completely change the godot command, like if you dont want it headless, and in that case you have to manually specify `-s path/sto/gdserver.gd`. Example:
+
+```bash
+gdrepl --godot /home/user/programs/godot/godot
+```
+
+If you are having problems try running the server and client separately. In one terminal run:
+
+```bash
+gdrepl server --verbose # You can also pass --godot or --command
+```
+
+In another one:
+
+```bash
+gdrepl client  # maybe --port N
+```
+
+Notice that multiple clients can be connected to the same server.
+
 For more information check `gdrepl --help`, `gdrepl server --help` etc.
 
 
@@ -191,4 +211,6 @@ strip bin/godot*
 
 # TODO
 
-- [ ] Have the gdscript websocket server be a proper api using json or something less hacky
+- [ ] Have the gdscript websocket server be a proper api or protoccol using json or something less hacky than we have now
+- [ ] Gdscript methods and properties auto completion using godot lsp
+- [ ] Auto unindent (like with else, elif)
