@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 from .client import client
-from .constants import SCRIPT_LOAD_REMOVE_KWDS
+from .constants import SCRIPT_LOAD_REMOVE_KWDS, STDOUT_MARKER_END, STDOUT_MARKER_START
 from types import FunctionType
 
 from dataclasses import dataclass
@@ -61,6 +61,14 @@ def savescript(c: client, args):
 
     with open(args[0], 'w') as f:
         f.write(script_global)
+        local_buffer = ""
+        for line in script_local.split("\n"):
+            # Remove STDOUT print lines
+            if line.strip() == "print(\"" + STDOUT_MARKER_START + "\")":
+                continue
+            if line.strip() == "print(\"" + STDOUT_MARKER_END + "\")":
+                continue
+            local_buffer += line + "\n"
         f.write(script_local)
     print("\n\nSuccessfully saved script to " + args[0])
 

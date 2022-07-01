@@ -14,12 +14,10 @@ from prompt_toolkit.shortcuts import prompt
 from pygments.lexers.gdscript import GDScriptLexer
 
 from .client import client as wsclient
-from .constants import GODOT, KEYWORDS, PORT, VI
+from .constants import GODOT, KEYWORDS, PORT, VI, STDOUT_MARKER_END, STDOUT_MARKER_START
 from .commands import (Command, COMMANDS)
 from .find_godot import godot_command, find_available_port, find_godot
 
-STDOUT_MARKER_START = "----------------STDOUT-----------------------"
-STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
 TIMEOUT = 0.2
 
 GODOT = find_godot()

@@ -30,3 +30,7 @@ KEYWORDS = ["if", "elif", "else", "for", "while", "match", "break", "continue", 
             "class_name", "extends", "is", "as", "self", "tool", "signal", "func", "static", "const", "enum", "var", "print", "printerr"]
 
 SCRIPT_LOAD_REMOVE_KWDS = ["tool", "extends", "onready", "@onready"]
+
+
+STDOUT_MARKER_START = "----------------STDOUT-----------------------"
+STDOUT_MARKER_END = "----------------STDOUT END-----------------------"
