@@ -169,7 +169,7 @@ def repl_loop(client, options: PromptOptions, server=None):
 
 def start_message():
     print(
-        "Welcome to GDScript REPL. Hit Ctrl+D to exit. If you start having errors type 'clear'"
+        "Welcome to GDScript REPL. Hit Ctrl+D to exit. If you start having errors type 'reset'"
     )
 
 

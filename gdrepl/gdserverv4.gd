@@ -7,7 +7,7 @@ extends SceneTree
 # Send anything else to evaluate as godot code
 # Commands:
 const commands = {
-  "clear": "clears the script buffer for the current session",
+  "reset": "clears the script buffer for the current session",
   "script_local": "Sends back the generated local",
   "script_global": "Sends back the generated global",
   "script_code": "Sends back the generated full runtime script code",
@@ -69,7 +69,6 @@ class Session:
         break
       new_local += line + "\n"
       i += 1
-    print("new_local: ", new_local, "\n----")
     local = new_local
 
   func check_scope(line: String, index: int):
@@ -319,7 +318,7 @@ func _on_data(id):
         response += c + ": " + commands[c] + "\n"
       response += "\n"
 
-    "clear":
+    "reset":
       clear(session)
       response = "Cleared"
 
