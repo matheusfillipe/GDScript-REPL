@@ -9,6 +9,7 @@ from types import FunctionType
 from dataclasses import dataclass
 
 from prompt_toolkit.completion import (Completer, PathCompleter, WordCompleter)
+from prompt_toolkit.shortcuts import clear
 
 EMPTY_COMPLETER = WordCompleter([])
 
@@ -69,4 +70,5 @@ COMMANDS = {
     "save": Command(completer=PathCompleter(), help="Save this session to .gd file", do=savescript),
     "quit": Command(help="Finishes this repl"),
     "help": Command(help="Displays this message", do=_help),
+    "clear": Command(help="Clears the screen", do=lambda _, __: clear()),
 }
