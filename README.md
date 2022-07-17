@@ -15,24 +15,6 @@ This repo contains:
 
 Notice that if all you want is run gdscript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
 
-#
-##### Table of Contents  
-* [Motivation](#motivation)
-* [Installation](#installation)
-* [Usage](#usage)
-* [Development](#development)
-  * [CLI](#cli)
-  * [Server](#server)
-  * [Environtment variables](#environtment-variables)
-  * [Why the weird approach](#why-the-weird-approach)
-* [Run the IRC bot](#run-the-irc-bot)
-* [Docker](#docker)
-  * [Build GODOT](#build-godot)
-  * [Build and image for the irc bot](#build-and-image-for-the-irc-bot)
-  * [Why the dockerfile doesn't download godot binary automatically?](#why-the-dockerfile-doesnt-download-godot-binary-automatically)
-* [TODO](#todo)
-
-
 
 ## Motivation
 
