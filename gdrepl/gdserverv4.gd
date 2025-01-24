@@ -244,7 +244,6 @@ func _init():
     port = OS.get_environment("PORT").to_int()
 
 
-  # We dont need those but good to know
   _server.message_received.connect(_on_message)
 
   # Start listening on the given port.
