@@ -3,6 +3,8 @@
 
 extends SceneTree
 
+const WebSocketServer = preload("websocketserver.gd")
+
 # Simple protocol:
 # Send anything else to evaluate as godot code
 # Commands:
@@ -242,8 +244,7 @@ func _init():
     port = OS.get_environment("PORT").to_int()
 
 
-  # We dont need those but good to know
-  _server.data_received.connect(_on_data)
+  _server.message_received.connect(_on_message)
 
   # Start listening on the given port.
   var err = _server.listen(port)
@@ -304,11 +305,9 @@ func test():
   debug = false
 
 
-func _on_data(id):
-  var pkt = _server.get_peer(id).get_packet()
-  var data = pkt.get_string_from_utf8()
+func _on_message(id, message):
   if debug:
-    print("Got data from client %d: %s" % [id, data])
+    print("Got message from client %d: %s" % [id, message])
 
   var session = "main"
   if OS.has_environment("SESSION") and session == "main":
@@ -316,7 +315,7 @@ func _on_data(id):
 
 
   # Commands without arguments
-  var cmd = data.strip_edges().to_lower()
+  var cmd = message.strip_edges().to_lower()
   var response = ""
   var has_command = true
   match cmd :
@@ -366,18 +365,18 @@ func _on_data(id):
     return
 
   # Commands with arguments
-  cmd = data.strip_edges().split(" ")[0].to_lower()
+  cmd = message.strip_edges().split(" ")[0].to_lower()
   match cmd:
     "delline_local":
-      sessions[session].dellocal((data.split(" ")[1]).to_int())
+      sessions[session].dellocal((message.split(" ")[1]).to_int())
       response = "Deleted line"
 
     "delline_global":
-      sessions[session].delglobal((data.split(" ")[1]).to_int())
+      sessions[session].delglobal((message.split(" ")[1]).to_int())
       response = "Deleted line"
 
     _:
-      response = exec(data, session)
+      response = exec(message, session)
       send(id, ">> " + response)
       return
 
@@ -385,8 +384,7 @@ func _on_data(id):
 
 
 func send(id, data):
-  _server.get_peer(id).put_packet(data.to_utf8_buffer())
-
+  _server.peers.get(id).put_packet(data.to_utf8_buffer())
 
 func _process(_delta):
   _server.poll()
