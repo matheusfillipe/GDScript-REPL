@@ -6,23 +6,23 @@
 
 # GDScript REPL
 
-This repo contains:
+This repository contains:
 
-- A proof of concept gdscript REPL
+- A proof of concept GDScript REPL
 - A dockerfile to build godot server for alpine
 - A dockerfile to run godot from alpine
-- A IRC gdscript REPL bot 
+- A IRC GDScript REPL bot 
 
-Notice that if all you want is run gdscript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
+Notice that if all you want is run GDScript files from the command line you don't need this project. Check out: https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html 
 
 
 ## Motivation
 
-Gdscript is a python like language but it lacks a reply. Godot has a built in `godot -s script.gd` to run scripts but it is overkill when you just want to test out the difference between a `PoolStringArray` and a normal `Array` of strings and play around like you can do with so many languages.
+GDScript is a python like language but it lacks a REPL. Godot has a built in `godot -s script.gd` to run scripts but it is overkill when you just want to test out the difference between a `PoolStringArray` and a normal `Array` of strings and play around like you can do with so many languages.
 
-That inspired me to try to turn `godot -s` into a repl, creating a [websocket server](https://docs.godotengine.org/en/stable/classes/class_websocketserver.html) that will take any string from any client in, evaluate it by creating new [GDScript](https://docs.godotengine.org/en/stable/classes/class_script.html), attaching that script to a resource node and then calling a function of that node. That requires a lot of hacky string manipulations to keep stuff working and have a separated local and global scopes allowing you to create functions, enums and classes from the repl. 
+That inspired me to try to turn `godot -s` into a REPL, creating a [websocket server](https://docs.godotengine.org/en/stable/classes/class_websocketserver.html) that will take any string from any client in, evaluate it by creating new [GDScript](https://docs.godotengine.org/en/stable/classes/class_script.html), attaching that script to a resource node and then calling a function of that node. That requires a lot of hacky string manipulations to keep stuff working and have a separated local and global scopes allowing you to create functions, enums and classes from the REPL. 
 
-This is this still very work in progress and experimental but serves to prove the point that a repl for godot would be awesome.
+This is this still very work in progress and experimental but serves to prove the point that a REPL for godot would be awesome.
 
 ## Installation
 
@@ -33,20 +33,20 @@ pip3 install gdrepl
 gdrepl
 ```
 
-If you want to use the irc bot you will need to clone this repos and follow the instructions for the bot bellow.
+If you want to use the irc bot you will need to clone this repo and follow the instructions bellow.
 
 
 ## Usage
 
-The gdscript server is implemented in a way that it will send the return output to the client but not stdout. So if you type `1+1` you will receive `2` but you can't receive `print(2)` event though that will be still shown on the server's output.
+The GDScript server is implemented in a way that it will send the return output to the client but not stdout. So if you type `1+1` you will receive `2` but you can't receive `print(2)` event though that will be still shown on the server's output.
 
-Currently this doesn't perfectly support multiline and you have to manually fix the identation sometimes. You can also "fake" multiline input in a single line in both the irc bot and REPL by using a `;`. Those will be replaced to `\n` at runtime, for example:
+Currently this doesn't perfectly support multiline and you have to manually fix the indentation sometimes. You can also "fake" multiline input in a single line in both the irc bot and REPL by using a `;`. Those will be replaced to `\n` at runtime, for example:
 
-```gdscript
+```GDScript
 func inc(value):; var new = value + 1; return value
 ```
 
-It supports godot 3 and 4. If you dont have godot on your path use the `--godot` parameter to pass it or `--command` to completely change the godot command, like if you dont want it headless, and in that case you have to manually specify `-s path/sto/gdserver.gd`. Example:
+It supports godot 3 and 4. If you don't have godot on your path use the `--godot` parameter to pass it or `--command` to completely change the godot command, like if you don't want it headless, and in that case you have to manually specify `-s path/sto/gdserver.gd`. Example:
 
 ```bash
 gdrepl --godot /home/user/programs/godot/godot
@@ -98,9 +98,9 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  repl*   Launch the godot server and start teh repl
-  client  Connects to a running godot repl server
-  server  Starts the gdscript repl websocket server
+  REPL*   Launch the godot server and start the REPL
+  client  Connects to a running godot REPL server
+  server  Starts the GDScript REPL websocket server
 
 ```
 
@@ -148,11 +148,11 @@ Custom server commands are:
 
 If `DEBUG=1` is set then the server will keep writing the formed script to stdout.
 
-If `TEST=1` the websocket serevr wont run and simple test functions will be executed.
+If `TEST=1` the websocket server won't run and simple test functions will be executed.
 
 ### Why the weird approach
 
-My main goal was to make a safe to host irc bot repl, spawning a docker image for each command. The `OS` module contains dangerous functions that allow you to run shell commands. In that process I realized it would be easy to make a normal CLI repl as well.
+My main goal was to make a safe to host irc bot REPL, spawning a docker image for each command. The `OS` module contains dangerous functions that allow you to run shell commands. In that process I realized it would be easy to make a normal CLI REPL as well.
 
 ## Run the IRC bot
 
@@ -193,6 +193,6 @@ strip bin/godot*
 
 # TODO
 
-- [ ] Have the gdscript websocket server be a proper api or protoccol using json or something less hacky than we have now
-- [ ] Gdscript methods and properties auto completion using godot lsp
+- [ ] Have the GDScript websocket server be a proper api or protoccol using json or something less hacky than we have now
+- [ ] GDScript methods and properties auto completion using godot lsp
 - [ ] Auto unindent (like with else, elif)
