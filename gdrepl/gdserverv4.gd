@@ -97,7 +97,7 @@ class Session:
 
 
   # Generates script code for the session
-  func code() -> String:
+  func code(with_return: bool = true) -> String:
     if len(local.strip_edges()) == 0:
       return global
 
@@ -129,7 +129,8 @@ class Session:
 
     # Only put return on local if it is really needed
     var is_assignment = "=" in last_stripped and not "==" in last_stripped
-    if has_keyword or is_assignment or local_scope_lock or lines[-1].begins_with(" "):
+    var should_skip_return = has_keyword or is_assignment or local_scope_lock or lines[-1].begins_with(" ")
+    if should_skip_return or not with_return:
       _local += "  " + lines[-1]
     else:
       _local += "  return " + lines[-1]
@@ -209,13 +210,18 @@ func exec(input: String, session: String = "main") -> String:
     return ""
 
   var script = GDScript.new()
-  script.source_code = sessions[session].code()
+  script.source_code = sessions[session].code(true)
   print_script(script, session)
 
   var err = script.reload()
   if err != OK:
-    sessions[session].dellast_local()
-    return "Err: " + str(err)
+    # Retry without return (handles void-returning functions like print())
+    script.source_code = sessions[session].code(false)
+    print_script(script, session)
+    err = script.reload()
+    if err != OK:
+      sessions[session].dellast_local()
+      return "Err: " + str(err)
 
   var obj = RefCounted.new()
   obj.set_script(script)
@@ -285,6 +291,8 @@ func add(a, b):
 1 + add(2, 3)
 """
 
+const cmd5 = "print(\"hello from void function\")"
+
 func test():
   debug = true
 
@@ -302,6 +310,8 @@ func test():
   print(exec(cmd22, session))
   print(exec(cmd3, session))
   print(exec(cmd4, session))
+  clear(session)
+  print(exec(cmd5, session))
   debug = false
 
 

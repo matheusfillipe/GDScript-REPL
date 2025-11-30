@@ -4,3 +4,8 @@ docker/logs/
 venv/
 botvenv/
 irc_bot/config.py
+.serena/
+build/
+gdrepl.egg-info/
+logs/
+test.gd
