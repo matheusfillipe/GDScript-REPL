@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gdrepl"
+dynamic = ["version"]
+description = "Proof of concept REPL for Godot's GDScript"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Matheus Fillipe", email = "mattf@tilde.club" }
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Interpreters",
+]
+keywords = ["godot", "gdscript", "repl", "interpreter", "gamedev"]
+
+dependencies = [
+    "pexpect>=4.9",
+    "prompt-toolkit>=3.0",
+    "click>=8.1",
+    "click-default-group>=1.2",
+    "websocket-client>=1.7",
+    "Pygments>=2.17",
+]
+
+[project.urls]
+Homepage = "https://github.com/matheusfillipe/GDScript-REPL"
+Repository = "https://github.com/matheusfillipe/GDScript-REPL"
+Issues = "https://github.com/matheusfillipe/GDScript-REPL/issues"
+
+[project.scripts]
+gdrepl = "gdrepl.main:cli"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "guess-next-dev"
+local_scheme = "no-local-version"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "gdrepl/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/gdrepl",
+    "/README.md",
+    "/LICENSE.md",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["gdrepl"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
