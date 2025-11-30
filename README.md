@@ -71,13 +71,22 @@ For more information check `gdrepl --help`, `gdrepl server --help` etc.
 
 ## Development
 
-### CLI
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
-Requires python3
+### Setup
 
 1. Install godot headless. Ubuntu has `sudo apt install godot3-server` which is very suitable for this. In another distros without that the script will fallback to `godot --no-window` to run it headlessly.
-3. You can create a virtual environment or not: `pip3 install requirements.py`  
-4. Run `python -m gdrepl`
+
+2. Install uv and sync dependencies:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
+```
+
+3. Run the REPL:
+```bash
+uv run gdrepl
+```
 
 With this you will see both stdout and return output in the same window.
 
@@ -158,11 +167,11 @@ My main goal was to make a safe to host irc bot REPL, spawning a docker image fo
 
 Requires python3 and a godot image. Use the `irc_bot` folder.
 
-1. Install gdrepl: `pip3 install gdrepl`
+1. Install gdrepl: `pip install gdrepl` or `uv pip install gdrepl`
 2. Build a docker image for it (See section bellow).
 3. Copy `config.py.example` to `config.py`
-4. Edit it for your needs. 
-5. You can create a virtual environment or not: `pip3 install bot/requirements.py`  
+4. Edit it for your needs.
+5. Install bot dependencies: `pip install -r irc_bot/requirements.txt`
 6. Run `./bot.py`
 
 To keep it running and manage it i recommend pm2: https://pm2.keymetrics.io/

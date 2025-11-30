@@ -1,4 +1,5 @@
 version: 2.1
+
 workflows:
   build_and_deploy:
     jobs:
@@ -7,15 +8,19 @@ workflows:
             tags:
               only: /.*/
       - test-python-install:
-          version: "3.8"
-          requires:
-            - build
-      - test-python-install:
           version: "3.9"
           requires:
             - build
       - test-python-install:
           version: "3.10"
+          requires:
+            - build
+      - test-python-install:
+          version: "3.11"
+          requires:
+            - build
+      - test-python-install:
+          version: "3.12"
           requires:
             - build
       - deploy:
@@ -30,69 +35,57 @@ workflows:
 jobs:
   build:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.11
     steps:
       - checkout
       - run:
-          name: install python dependencies
+          name: Install uv
+          command: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - run:
+          name: Build package
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-          paths:
-            - "venv"
+            export PATH="$HOME/.local/bin:$PATH"
+            uv build
 
   test-python-install:
     parameters:
       version:
         type: string
-        default: latest
+        default: "3.11"
     docker:
       - image: cimg/python:<< parameters.version >>
     steps:
       - checkout
       - run:
-          name: install python dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
+          name: Install uv
+          command: curl -LsSf https://astral.sh/uv/install.sh | sh
       - run:
-          name: Smoke Test Install 
+          name: Smoke Test Install
           command: |
+            export PATH="$HOME/.local/bin:$PATH"
             python3 --version
-            pip install .
+            uv pip install --system .
+            python -m gdrepl --help
 
   deploy:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.11
     steps:
+      - checkout
       - run:
-          name: Checkout
-          command: |
-            git clone https://github.com/matheusfillipe/GDScript-REPL .
-            git fetch --all
+          name: Fetch tags for versioning
+          command: git fetch --tags
       - run:
-          name: install python dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
+          name: Install uv
+          command: curl -LsSf https://astral.sh/uv/install.sh | sh
       - run:
-          name: init .pypirc
+          name: Build package
           command: |
-            echo -e "[pypi]" >> ~/.pypirc
-            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
-            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+            export PATH="$HOME/.local/bin:$PATH"
+            uv build
       - run:
-          name: create packages
+          name: Upload to PyPI
           command: |
-            . venv/bin/activate
-            pip install wheel
-            python3 setup.py sdist bdist_wheel
-      - run:
-          name: upload to pypi
-          command: |
-            pip install twine
-            twine upload dist/*
-
+            export PATH="$HOME/.local/bin:$PATH"
+            uv pip install --system twine
+            python -m twine upload dist/* -u __token__ -p $PYPI_TOKEN
