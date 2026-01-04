@@ -1,4 +1,3 @@
-
 import re
 import signal
 import threading
@@ -8,15 +7,21 @@ from tempfile import NamedTemporaryFile
 import requests
 import trio
 from cachetools import TTLCache
-from IrcBot.bot import IrcBot, Message, utils
+from config import CHANNELS
+from config import DOCKER_COMMAND
+from config import NICK
+from config import PORT
+from config import PREFIX
+from config import SERVER
+from config import SSL
+from IrcBot.bot import IrcBot
+from IrcBot.bot import Message
+from IrcBot.bot import utils
+from message_server import listen_loop
 from pexpect import replwrap
 
-from config import (CHANNELS, NICK, PORT, PREFIX, DOCKER_COMMAND,
-                    SERVER, SSL)
-
-from message_server import listen_loop
-file
 from gdrepl import script_file
+
 
 REPL_TTL = 60 * 60 * 2
 DOCKER_COMMAND = DOCKER_COMMAND % str(Path(script_file()).parent)
@@ -25,24 +30,21 @@ COMMAND = f'gdrepl --command "{DOCKER_COMMAND}"'
 user_repls = TTLCache(maxsize=4, ttl=REPL_TTL)
 user_history = TTLCache(maxsize=128, ttl=REPL_TTL)
 
-utils.setHelpHeader(
-    "USE: {PREFIX} [gdscript command here]       - (Notice the space)")
-utils.setHelpBottom(
-    "GDscript is the godot game engine language. Tutorial at https://gdscript.com/tutorials/")
+utils.setHelpHeader("USE: {PREFIX} [gdscript command here]       - (Notice the space)")
+utils.setHelpBottom("GDscript is the godot game engine language. Tutorial at https://gdscript.com/tutorials/")
 utils.setLogging(10)
 utils.setParseOrderTopBottom(True)
 utils.setPrefix(PREFIX)
 
 info = utils.log
 
-FIFO = NamedTemporaryFile(mode='w+b', prefix='gdrepl-bot',
-                          suffix='.fifo', delete=False).name
+FIFO = NamedTemporaryFile(mode="w+b", prefix="gdrepl-bot", suffix=".fifo", delete=False).name  # noqa: SIM115
+
 
 def ansi2irc(text):
     """Convert ansi colors to irc colors."""
-    text = re.sub(r'\x1b\[([0-9;]+)m', lambda m: '\x03' + m.group(1), text)
-    text = re.sub(r'\x1b\[([0-9;]+)[HJK]', lambda m: '\x1b[%s%s' %
-                  (m.group(1), m.group(2)), text)
+    text = re.sub(r"\x1b\[([0-9;]+)m", lambda m: "\x03" + m.group(1), text)
+    text = re.sub(r"\x1b\[([0-9;]+)[HJK]", lambda m: f"\x1b[{m.group(1)}{m.group(2)}", text)
     return text
 
 
@@ -61,7 +63,7 @@ def paste(text):
     info(f"Pasting {text=}")
     try:
         url = "http://ix.io"
-        payload = {'f:1=<-': text}
+        payload = {"f:1=<-": text}
         response = requests.request("POST", url, data=payload)
         return response.text
     except Exception as e:
@@ -76,23 +78,20 @@ def read_paste(url):
 
 
 def run_command(msg: Message, text: str):
-
     def _run_command(msg: Message, text: str):
         def __run_command(msg: Message, text: str):
             global user_repls, user_history
             user = msg.nick
             if user not in user_repls:
                 info(f"Creating new repl for {user}")
-                user_repls[user] = replwrap.REPLWrapper(
-                    COMMAND, ">>> ", prompt_change=None)
+                user_repls[user] = replwrap.REPLWrapper(COMMAND, ">>> ", prompt_change=None)
             reply(msg, user_repls[user].run_command(text, timeout=10))
 
             if user not in user_history:
                 user_history[user] = []
             user_history[user].append(text)
 
-        t = threading.Thread(target=__run_command,
-                             args=(msg, text), daemon=True)
+        t = threading.Thread(target=__run_command, args=(msg, text), daemon=True)
         t.start()
         t.join(10)
         if t.is_alive():
@@ -160,6 +159,7 @@ async def onConnect(bot: IrcBot):
     async with trio.open_nursery() as nursery:
         nursery.start_soon(listen_loop, FIFO, message_handler)
         nursery.start_soon(update_loop)
+
 
 if __name__ == "__main__":
     print("DOCKER COMMAND:", DOCKER_COMMAND)

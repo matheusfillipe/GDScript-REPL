@@ -12,15 +12,17 @@
 
 
 import asyncio
+import atexit
 import os
 import stat
-import atexit
 from typing import Callable
 
 import trio
 
+
 loop = True
 FIFO = "/tmp/gdrepl-bot.fifo"
+
 
 def stop_loop():
     global loop, FIFO
@@ -29,7 +31,9 @@ def stop_loop():
         f.write(".")
     os.remove(FIFO)
 
+
 atexit.register(stop_loop)
+
 
 async def listen_loop(fifo_path: str, handler: Callable):
     global loop, FIFO

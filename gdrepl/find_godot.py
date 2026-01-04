@@ -1,10 +1,12 @@
 import os
 import socket
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from shutil import which
 
-from .constants import MAX_PORT_BIND_ATTEMPTS, POSSIBLE_COMMANDS
+from .constants import MAX_PORT_BIND_ATTEMPTS
+from .constants import POSSIBLE_COMMANDS
+
 
 def is_tool(name):
     """Check whether `name` is on PATH and marked as executable."""
@@ -33,8 +35,18 @@ def godot_command(godot: str) -> str:
     """Fixes the arguments for godot based on the version"""
     output = None
     try:
-        output = subprocess.run(f"{godot} --version", stdout=subprocess.PIPE, timeout=None,
-                                check=False, shell=True, stderr=subprocess.STDOUT).stdout.decode().strip()
+        output = (
+            subprocess.run(
+                f"{godot} --version",
+                stdout=subprocess.PIPE,
+                timeout=None,
+                check=False,
+                shell=True,
+                stderr=subprocess.STDOUT,
+            )
+            .stdout.decode()
+            .strip()
+        )
     except subprocess.CalledProcessError:
         if not output:
             print("Failed to check godot version!")
@@ -62,6 +74,7 @@ def find_available_port(start_port: int) -> int:
         if port - start_port > MAX_PORT_BIND_ATTEMPTS:
             print("Failed to find free port. Maybe I can't bind on localhost?")
             import sys
+
             sys.exit(1)
             return -1
 

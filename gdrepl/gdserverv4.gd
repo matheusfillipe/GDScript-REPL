@@ -112,8 +112,15 @@ class Session:
       local_scope_lock = false
       for line in lines.slice(0, len(lines)-1):
         var has_keyword = check_scope(line, i)
+        var line_stripped = line.strip_edges()
 
-        # Removes all calls to print except the last one or keyword one
+        # Skip print statements from previous executions to avoid repeated output
+        var is_print_call = line_stripped.begins_with("print(") or line_stripped.begins_with("printerr(")
+        if is_print_call:
+          i += 1
+          continue
+
+        # Inject stdout marker at the last scope index
         if i == last_index:
           var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
           _local += "  " + identation + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
@@ -121,7 +128,7 @@ class Session:
 
         i += 1
 
-    # Removes all calls to print except the last one or keyword one
+    # Inject stdout marker before the last line
     if i == last_index:
       _local += "  " + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
 
@@ -129,7 +136,8 @@ class Session:
 
     # Only put return on local if it is really needed
     var is_assignment = "=" in last_stripped and not "==" in last_stripped
-    var should_skip_return = has_keyword or is_assignment or local_scope_lock or lines[-1].begins_with(" ")
+    var is_void_call = last_stripped.begins_with("print(") or last_stripped.begins_with("printerr(")
+    var should_skip_return = has_keyword or is_assignment or local_scope_lock or lines[-1].begins_with(" ") or is_void_call
     if should_skip_return or not with_return:
       _local += "  " + lines[-1]
     else:

@@ -35,6 +35,7 @@ dependencies = [
     "click-default-group>=1.2",
     "websocket-client>=1.7",
     "Pygments>=2.17",
+    "PyYAML>=6.0",
 ]
 
 [project.urls]
@@ -68,5 +69,84 @@ packages = ["gdrepl"]
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "pytest-mock>=3.14",
     "ruff>=0.8",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+    "pytest-timeout>=2.4.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (e2e tests with Godot)",
+]
+timeout = 300
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (import sorting)
+    "UP",     # pyupgrade (modern Python syntax)
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "RUF",    # Ruff-specific rules
+]
+ignore = []
+
+[tool.ruff.lint.isort]
+force-single-line = true
+lines-after-imports = 2
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.9"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+strict_equality = true
+ignore_missing_imports = true
+exclude = ["irc_bot/", "tests/"]
+check_untyped_defs = false
+
+# Gradually enable strict typing for new modules only
+[[tool.mypy.overrides]]
+module = "gdrepl.config"
+disallow_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "gdrepl.history"
+disallow_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "gdrepl.styles"
+disallow_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "gdrepl.ui"
+disallow_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "gdrepl.keybindings"
+disallow_untyped_defs = true
+warn_unused_ignores = true

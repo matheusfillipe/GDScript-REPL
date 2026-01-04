@@ -1,5 +1,8 @@
 from websocket import create_connection
-from .constants import HOST, PORT
+
+from .constants import HOST
+from .constants import PORT
+
 
 class client:
     def __init__(self, host=HOST, port=PORT):
@@ -20,14 +23,16 @@ class client:
         if not get_response:
             return ""
 
-        resp = self.ws.recv().decode()
+        resp = self.ws.recv()
+        if isinstance(resp, bytes):
+            resp = resp.decode()
         # Return response
         if resp.startswith(">> "):
             if len(resp) > 3:
                 if resp[3:] == "Err: 43":
-                    return
+                    return ""
                 return "  -> " + resp[3:]
-            return
+            return ""
 
         if resp == "Cleared":
             return "Environment cleared!"

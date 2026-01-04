@@ -1,28 +1,42 @@
 import os
 import re
 import subprocess as sb
+from dataclasses import dataclass
 
 import click
 import pexpect
-from dataclasses import dataclass
 from click_default_group import DefaultGroup
-from prompt_toolkit.completion import (WordCompleter, Completer)
+from prompt_toolkit.application.current import get_app
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import Completer
+from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.document import Document
-from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.enums import EditingMode
 from prompt_toolkit.lexers import PygmentsLexer
-from prompt_toolkit.shortcuts import prompt
+from prompt_toolkit.shortcuts import PromptSession
 from pygments.lexers.gdscript import GDScriptLexer
 
 from .client import client as wsclient
-from .constants import GODOT, KEYWORDS, PORT, VI, STDOUT_MARKER_END, STDOUT_MARKER_START
-from .commands import (Command, COMMANDS)
-from .find_godot import godot_command, find_available_port, find_godot
+from .commands import COMMANDS
+from .commands import Command
+from .config import ConfigManager
+from .constants import KEYWORDS
+from .constants import PORT
+from .constants import STDOUT_MARKER_END
+from .constants import STDOUT_MARKER_START
+from .constants import VI
+from .find_godot import find_available_port
+from .find_godot import find_godot
+from .find_godot import godot_command
+from .history import RotatingFileHistory
+from .keybindings import REPLKeyBindings
+from .styles import REPLStyles
+from .ui import ToolbarStyler
 
-TIMEOUT = 0.2
+
+TIMEOUT = 0
 
 GODOT = find_godot()
-
-history = InMemoryHistory()
 
 
 @dataclass
@@ -35,8 +49,9 @@ class CustomCompleter(Completer):
     """Auto completion and commands"""
 
     def __init__(self):
-        self.word_completer = WordCompleter(
-            KEYWORDS + list(COMMANDS.keys()), WORD=True)
+        # Add ! prefix to all commands for IPython-style completion
+        command_list = ["!" + cmd for cmd in COMMANDS]
+        self.word_completer = WordCompleter(KEYWORDS + command_list, WORD=True)
         self.document = None
         self.iterator = None
 
@@ -49,52 +64,80 @@ class CustomCompleter(Completer):
             return
 
         cmd = document.text.split()[0]
-        if cmd in COMMANDS and len(document.text_before_cursor.strip()) > len(cmd):
-            sub_doc = Document(document.text[len(cmd) + 1:])
-            self._create_iterator(COMMANDS[cmd].completer,
-                                  sub_doc, complete_event)
+        # Handle IPython-style commands with ! prefix
+        cmd_name = cmd[1:] if cmd.startswith("!") else cmd
+
+        if cmd_name in COMMANDS and len(document.text_before_cursor.strip()) > len(cmd):
+            sub_doc = Document(document.text[len(cmd) + 1 :])
+            self._create_iterator(COMMANDS[cmd_name].completer, sub_doc, complete_event)
 
         elif document != self.document:
             self.document = document
-            self._create_iterator(self.word_completer,
-                                  document, complete_event)
-        for w in self.iterator:
-            yield w
+            self._create_iterator(self.word_completer, document, complete_event)
 
-
-def _prompt(options, completer, multiline=False, ident_level=0):
-    return prompt(
-        ">>> " if not multiline else "... ",
-        vi_mode=options.vi,
-        default=" " * ident_level,
-        history=history,
-        lexer=PygmentsLexer(GDScriptLexer),
-        completer=completer,
-    )
+        if self.iterator:
+            yield from self.iterator
 
 
 def wait_for_output(server, timeout):
     try:
-        server.expect(STDOUT_MARKER_START, timeout=timeout)
         server.expect(STDOUT_MARKER_END, timeout=timeout)
         output = server.before.decode()
-        if output.strip():
-            print(output.strip())
+        # Remove any stdout markers from the output
+        output = output.replace(STDOUT_MARKER_START, "")
+        output = output.replace(STDOUT_MARKER_END, "")
+        # Filter out void return errors (these are handled by retry logic)
+        lines = output.split("\n")
+        filtered_lines = []
+        skip_next = 0
+        for i, line in enumerate(lines):
+            if skip_next > 0:
+                skip_next -= 1
+                continue
+            # Skip "Cannot get return value" errors and their stack traces
+            if "Cannot get return value" in line and 'returns "void"' in line:
+                # Skip this line and the next few lines (stack trace)
+                skip_next = 10  # Skip the stack trace
+                continue
+            if "SCRIPT ERROR:" in line and i + 1 < len(lines) and "Cannot get return value" in lines[i + 1]:
+                skip_next = 11  # Skip SCRIPT ERROR line + stack trace
+                continue
+            filtered_lines.append(line)
+        output = "\n".join(filtered_lines).strip()
+        if output:
+            print(output)
     except pexpect.exceptions.TIMEOUT:
         pass
     try:
-        server.expect(r"SCRIPT ERROR:(.+)", timeout=timeout)
-        error = server.match.group(1).decode().strip()
-        error = re.sub(
-            "\r\n" + r".*ERROR:.* Method failed\..*" + "\r\n.*", "", error
-        )
-        # if re.match(r".*SCRIPT ERROR:.*at:.*\(<built-in>:(\d+)\).*", )
-        print(error)
+        server.expect(r"SCRIPT ERROR:(?!.*Cannot get return value)(.+)", timeout=timeout)
+        if server.match and server.match.group(1):
+            error = server.match.group(1).decode().strip()
+            error = re.sub("\r\n" + r".*ERROR:.* Method failed\..*" + "\r\n.*", "", error)
+            print(error)
     except pexpect.exceptions.TIMEOUT:
         pass
 
 
 def repl_loop(client, options: PromptOptions, server=None):
+    config_manager = ConfigManager()
+    config = config_manager.config
+
+    history = RotatingFileHistory(
+        os.path.expanduser(config.history_file),
+        max_entries=config.max_history,
+        backup_count=config.backup_count,
+    )
+
+    key_bindings = REPLKeyBindings(config).bindings
+    auto_suggest = AutoSuggestFromHistory() if config.auto_suggest else None
+
+    style = getattr(REPLStyles, config.toolbar_style.upper(), REPLStyles.COLORFUL)
+
+    def get_toolbar():
+        mode = "Vi" if get_app().editing_mode == EditingMode.VI else "Emacs"
+        toolbar_func = getattr(ToolbarStyler, config.toolbar_style, ToolbarStyler.colorful)
+        return toolbar_func(mode)
+
     # Fill out our auto completion with server commands as well
     helpmsg = client.send("help")
     for line in helpmsg.split("\n"):
@@ -111,20 +154,40 @@ def repl_loop(client, options: PromptOptions, server=None):
         COMMANDS[cmd] = Command(help=help, send_to_server=True)
 
     completer = CustomCompleter()
+
+    session: PromptSession[str] = PromptSession(
+        history=history,
+        key_bindings=key_bindings,
+        auto_suggest=auto_suggest,
+        bottom_toolbar=get_toolbar,
+        lexer=PygmentsLexer(GDScriptLexer),
+        completer=completer,
+        style=style,
+    )
+
     multiline_buffer = ""
     multiline = False
     ident_level = 0
     while True:
         try:
-            cmd = _prompt(options, completer, multiline, ident_level)
+            cmd = session.prompt("... ", default=" " * ident_level) if multiline else session.prompt(">>> ")
         except KeyboardInterrupt:
             multiline = False
             multiline_buffer = ""
             ident_level = 0
             continue
         except EOFError:
-            client.close()
-            break
+            try:
+                confirm = input("\nAre you sure you want to quit? (y/n): ").strip().lower()
+                if confirm in ["y", "yes"]:
+                    client.close()
+                    break
+                else:
+                    print("Continuing...")
+                    continue
+            except (EOFError, KeyboardInterrupt):
+                client.close()
+                break
 
         if len(cmd.strip()) == 0:
             if not multiline:
@@ -133,18 +196,26 @@ def repl_loop(client, options: PromptOptions, server=None):
             # HACK force run
             multiline_buffer += ";"
 
-        if cmd.strip() in ["quit", "exit"]:
+        if cmd.strip() in ["!quit", "!exit"]:
             client.send(cmd, False)
             client.close()
             break
 
-        if not multiline and len(cmd.split()) > 0 and cmd.split()[0] in COMMANDS:
-            command = COMMANDS[cmd.split()[0]]
-            command.do(client, cmd.split()[1:])
-            if not command.send_to_server:
+        # Handle commands with ! prefix (IPython-style)
+        if not multiline and cmd.strip().startswith("!"):
+            cmd_name = cmd.strip()[1:].split()[0] if len(cmd.strip()) > 1 else ""
+            if cmd_name in COMMANDS:
+                command = COMMANDS[cmd_name]
+                command.do(client, cmd.strip()[1:].split()[1:])
+                if command.send_to_server:
+                    # Send to server without the ! prefix
+                    resp = client.send(cmd.strip()[1:])
+                    if resp:
+                        print(resp)
                 continue
-
-        history._loaded_strings = list(dict.fromkeys(history._loaded_strings))
+            else:
+                print(f"Error: Unknown command '!{cmd_name}'. Type '!help' for available commands.")
+                continue
 
         # Switch to multiline until return is pressed twice
         if cmd.strip().endswith(":"):
@@ -168,9 +239,7 @@ def repl_loop(client, options: PromptOptions, server=None):
 
 
 def start_message():
-    print(
-        "Welcome to GDScript REPL. Hit Ctrl+D to exit. If you start having errors type 'reset'"
-    )
+    pass
 
 
 @click.group(cls=DefaultGroup, default="run", default_if_no_args=True)
@@ -181,9 +250,7 @@ def cli():
 @cli.command(help="Launch the godot server and starts the repl")
 @click.option("--vi", is_flag=True, default=VI, help="Use vi mode")
 @click.option("--godot", default=GODOT, help="Path to godot executable")
-@click.option(
-    "--command", default="", help="Custom command to run the server script with"
-)
+@click.option("--command", default="", help="Custom command to run the server script with")
 @click.option("--timeout", default=TIMEOUT, help="Time to wait for godot output")
 def run(vi, godot, command, timeout):
     if not godot:
@@ -191,15 +258,12 @@ def run(vi, godot, command, timeout):
     server = None
 
     port = find_available_port(PORT)
-    env = os.environ.copy()
-    env["PORT"] = str(port)
+    env_copy = os.environ.copy()
+    env_copy["PORT"] = str(port)
 
-    if command:
-        server = pexpect.spawn(command, env=env)
-    else:
-        server = pexpect.spawn(godot_command(godot), env=env)
+    server = pexpect.spawn(command, env=env_copy) if command else pexpect.spawn(godot_command(godot), env=env_copy)
     server.expect(r".*Godot Engine (\S+) .*")
-    version = server.match.group(1).decode().strip()
+    version = server.match.group(1).decode() if server.match and server.match.group(1) else ""
     print("Godot", version, "listening on:", port)
 
     server.expect("Gdrepl Listening on .*")
@@ -226,13 +290,13 @@ def client(vi, port):
 def server(port, godot, verbose):
     if not godot:
         return
-    env = os.environ.copy()
+    env_copy = os.environ.copy()
     if port:
-        env["PORT"] = str(port)
+        env_copy["PORT"] = str(port)
     else:
-        env["PORT"] = str(find_available_port(port))
+        env_copy["PORT"] = str(find_available_port(port))
 
     if verbose:
-        env["DEBUG"] = "1"
+        env_copy["DEBUG"] = "1"
 
-    sb.run(godot_command(godot), shell=True, env=env)
+    sb.run(godot_command(godot), shell=True, env=env_copy)
