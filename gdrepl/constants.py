@@ -24,31 +24,52 @@ POSSIBLE_COMMANDS = [
 # If set to false the prompt will have emacs bindings
 VI = False
 
-# Godot keywords
+# GDScript keywords (Godot 4.x)
+# Reference: https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html
 KEYWORDS = [
+    # Control flow
     "if",
     "elif",
     "else",
     "for",
     "while",
     "match",
+    "when",
     "break",
     "continue",
     "pass",
     "return",
+    # Class definition
     "class",
     "class_name",
     "extends",
+    # Type operations
     "is",
+    "in",
     "as",
+    # Self reference
     "self",
-    "tool",
+    "super",
+    # Declarations
     "signal",
     "func",
     "static",
     "const",
     "enum",
     "var",
+    # Special keywords
+    "breakpoint",
+    "preload",
+    "await",
+    "yield",
+    "assert",
+    "void",
+    # Constants
+    "PI",
+    "TAU",
+    "INF",
+    "NAN",
+    # Built-in functions (commonly used)
     "print",
     "printerr",
 ]
