@@ -114,17 +114,21 @@ class Session:
         var has_keyword = check_scope(line, i)
         var line_stripped = line.strip_edges()
 
-        # Skip print statements from previous executions to avoid repeated output
+        # Replace print statements from previous executions with pass to avoid repeated output
+        # while keeping control structure bodies valid
         var is_print_call = line_stripped.begins_with("print(") or line_stripped.begins_with("printerr(")
-        if is_print_call:
-          i += 1
-          continue
 
         # Inject stdout marker at the last scope index
         if i == last_index:
           var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
           _local += "  " + identation + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
-        _local += "  " + line + "\n"
+
+        if is_print_call:
+          # Replace with pass to keep control structures valid
+          var indentation = " ".repeat(len(line) - len(line.lstrip(" \t")))
+          _local += "  " + indentation + "pass\n"
+        else:
+          _local += "  " + line + "\n"
 
         i += 1
 
@@ -179,6 +183,55 @@ func print_script(script, session):
   print(script.source_code)
   print("-----------------------------------\n")
 
+func needs_return(code: String) -> bool:
+  # Smart return detection to avoid double script reload
+  # Returns true if the last line is an expression that needs a return statement
+
+  if code.strip_edges().is_empty():
+    return false
+
+  var lines = code.strip_edges().split("\n")
+  var last_line = lines[-1].strip_edges()
+
+  # Empty line
+  if last_line.is_empty():
+    return false
+
+  # Lines ending with : are control flow statements (if, for, while, func, etc.)
+  if last_line.ends_with(":"):
+    return false
+
+  # Variable or constant declarations
+  if last_line.begins_with("var ") or last_line.begins_with("const "):
+    return false
+
+  # Control flow keywords
+  var first_word = last_line.split(" ")[0].strip_edges()
+  if first_word in keywords_local:
+    return false
+
+  # Global scope keywords (func, class, etc.)
+  if first_word in keywords_global:
+    return false
+
+  # Continuation of previous line (indented)
+  if lines[-1].begins_with(" ") or lines[-1].begins_with("\t"):
+    return false
+
+  # Assignment detection using regex (better than string search)
+  var regex = RegEx.new()
+  # Match: word = value (but not ==, !=, <=, >=)
+  regex.compile("^\\w+\\s*=\\s*[^=]")
+  if regex.search(last_line):
+    return false
+
+  # Known void function calls
+  if last_line.begins_with("print(") or last_line.begins_with("printerr("):
+    return false
+
+  # Default: assume it's an expression that needs return
+  return true
+
 func add_code(code: String, session: String = "main"):
   # Switch to global scope on keywords_global
   if code != main and code.strip_edges().split(" ")[0] in keywords_global:
@@ -217,19 +270,18 @@ func exec(input: String, session: String = "main") -> String:
     sessions[session].scope = Scope.Local
     return ""
 
+  # Smart detection: determine if we need return BEFORE compiling
+  var use_return = needs_return(sessions[session].local)
+
   var script = GDScript.new()
-  script.source_code = sessions[session].code(true)
+  script.source_code = sessions[session].code(use_return)
   print_script(script, session)
 
+  # Single reload with smart detection
   var err = script.reload()
   if err != OK:
-    # Retry without return (handles void-returning functions like print())
-    script.source_code = sessions[session].code(false)
-    print_script(script, session)
-    err = script.reload()
-    if err != OK:
-      sessions[session].dellast_local()
-      return "Err: " + str(err)
+    sessions[session].dellast_local()
+    return "Err: " + str(err)
 
   var obj = RefCounted.new()
   obj.set_script(script)

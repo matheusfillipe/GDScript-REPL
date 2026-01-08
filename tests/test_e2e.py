@@ -217,6 +217,35 @@ class TestREPLE2E:
         # Check that unique_test_string is NOT in the output we just received
         assert "unique_test_string" not in repl.before, "Print statement should not repeat"
 
+    def test_code_after_loop_execution(self, repl):
+        """Test that code can be executed after a for loop completes."""
+        # Execute a for loop with print
+        repl.sendline("for i in range(3):")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        repl.sendline("    print(i)")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        # Send empty line to finish the loop
+        repl.sendline("")
+
+        # Should see output from the loop
+        repl.expect("0", timeout=10)
+        repl.expect("1", timeout=10)
+        repl.expect("2", timeout=10)
+        repl.expect(">>>", timeout=10)
+
+        # Now execute code after the loop - this should NOT fail with
+        # "Expected indented block after 'for' block" error
+        repl.sendline("42")
+        repl.expect(r"-> 42", timeout=10)
+        repl.expect(">>>", timeout=10)
+
+        # Try another expression to make sure state is clean
+        repl.sendline("100 + 23")
+        repl.expect(r"-> 123", timeout=10)
+        repl.expect(">>>", timeout=10)
+
 
 @pytest.mark.slow
 class TestREPLPersistence:
