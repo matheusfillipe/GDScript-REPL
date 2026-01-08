@@ -59,11 +59,15 @@ class CustomCompleter(Completer):
         self.iterator = completer.get_completions(document, complete_event)
 
     def get_completions(self, document, complete_event):
+        # Don't complete at start of line (allow literal tabs for indentation)
+        if document.cursor_position == 0 or document.text_before_cursor.isspace():
+            return
+
         # Only complete after 1st character of last word
         if len(document.text_before_cursor.split(" ")[-1]) < 1:
             return
 
-        cmd = document.text.split()[0]
+        cmd = document.text.split()[0] if document.text.strip() else ""
         # Handle IPython-style commands with ! prefix
         cmd_name = cmd[1:] if cmd.startswith("!") else cmd
 
@@ -153,28 +157,27 @@ def repl_loop(client, options: PromptOptions, server=None):
             continue
         COMMANDS[cmd] = Command(help=help, send_to_server=True)
 
-    completer = CustomCompleter()
-
+    # Note: Tab completion is disabled to allow manual indentation with Tab key
     session: PromptSession[str] = PromptSession(
         history=history,
         key_bindings=key_bindings,
         auto_suggest=auto_suggest,
         bottom_toolbar=get_toolbar,
         lexer=PygmentsLexer(GDScriptLexer),
-        completer=completer,
+        completer=None,
+        complete_while_typing=False,
         style=style,
     )
 
     multiline_buffer = ""
     multiline = False
-    ident_level = 0
     while True:
         try:
-            cmd = session.prompt("... ", default=" " * ident_level) if multiline else session.prompt(">>> ")
+            # Use simple prompts - don't auto-insert indentation as it causes display issues
+            cmd = session.prompt("... ") if multiline else session.prompt(">>> ")
         except KeyboardInterrupt:
             multiline = False
             multiline_buffer = ""
-            ident_level = 0
             continue
         except EOFError:
             try:
@@ -189,12 +192,22 @@ def repl_loop(client, options: PromptOptions, server=None):
                 client.close()
                 break
 
+        # Handle empty line - execute multiline buffer or skip
         if len(cmd.strip()) == 0:
             if not multiline:
                 continue
+            # Empty line in multiline mode - execute the buffer
             multiline = False
-            # HACK force run
-            multiline_buffer += ";"
+            # Force execution (semicolon terminates statement in GDScript)
+            # Note: Tab key inserts spaces, but normalize any literal tabs just in case
+            buffer_to_send = multiline_buffer.replace("\t", "    ") + ";"
+            resp = client.send(buffer_to_send)
+            multiline_buffer = ""
+            if resp:
+                print(resp)
+            if server is not None:
+                wait_for_output(server, options.timeout)
+            continue
 
         if cmd.strip() in ["!quit", "!exit"]:
             client.send(cmd, False)
@@ -220,7 +233,6 @@ def repl_loop(client, options: PromptOptions, server=None):
         # Switch to multiline until return is pressed twice
         if cmd.strip().endswith(":"):
             multiline = True
-            ident_level = len(cmd.rstrip()) - len(cmd.strip()) + 1
 
         multiline_buffer += cmd
         if multiline:
@@ -229,7 +241,6 @@ def repl_loop(client, options: PromptOptions, server=None):
 
         resp = client.send(multiline_buffer)
         multiline_buffer = ""
-        ident_level = 0
 
         if resp:
             print(resp)

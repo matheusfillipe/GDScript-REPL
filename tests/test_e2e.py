@@ -84,21 +84,38 @@ class TestREPLE2E:
         repl.expect(">>>")
 
     def test_loop_execution(self, repl):
-        """Test for loop execution."""
+        """Test for loop execution with spaces."""
         repl.sendline("for i in range(3):")
-        repl.expect(r"\.\.\.")
+        repl.expect(r"\.\.\.", timeout=10)
 
         repl.sendline("    print(i)")
-        repl.expect(r"\.\.\.")
+        repl.expect(r"\.\.\.", timeout=10)
 
         # Send empty line to finish the loop
         repl.sendline("")
 
         # Should see output from the loop
-        repl.expect("0")
-        repl.expect("1")
-        repl.expect("2")
-        repl.expect(">>>")
+        repl.expect("0", timeout=10)
+        repl.expect("1", timeout=10)
+        repl.expect("2", timeout=10)
+        repl.expect(">>>", timeout=10)
+
+    def test_loop_execution_with_tab(self, repl):
+        """Test for loop execution with tab indentation."""
+        repl.sendline("for i in range(2):")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        # Send tab + print
+        repl.sendline("\tprint(i)")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        # Send empty line to finish the loop
+        repl.sendline("")
+
+        # Should see output from the loop
+        repl.expect("0", timeout=10)
+        repl.expect("1", timeout=10)
+        repl.expect(">>>", timeout=10)
 
     def test_function_definition(self, repl):
         """Test function definition and calling."""

@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 from typing import Any
 
+from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.enums import EditingMode
 from prompt_toolkit.key_binding import KeyBindings
 
@@ -16,6 +17,11 @@ class REPLKeyBindings:
         self._setup_bindings()
 
     def _setup_bindings(self) -> None:
+        @self.bindings.add("tab", eager=True)
+        def insert_tab(event: Any) -> None:
+            """Insert 4 spaces for indentation"""
+            event.current_buffer.insert_text("    ")
+
         @self.bindings.add("f4")
         def toggle_mode(event: Any) -> None:
             app = event.app
@@ -36,16 +42,22 @@ class REPLKeyBindings:
         buffer = event.app.current_buffer
         current_text = buffer.text
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=self.config.temp_suffix, delete=False) as f:
-            f.write(current_text)
-            temp_file = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=self.config.temp_suffix, delete=False) as tmp:
+            tmp.write(current_text)
+            temp_file = tmp.name
 
-        try:
+        def edit_in_terminal() -> None:
             editor = os.environ.get("EDITOR", self.config.editor)
-            event.app.suspend_to_background()
             subprocess.call([editor, temp_file])
 
+            # Read the edited content back into the buffer
+            # Convert tabs to spaces to avoid display issues and execution problems
             with open(temp_file) as f:
-                buffer.text = f.read()
-        finally:
+                content = f.read()
+                buffer.text = content.replace("\t", "    ")
+
+            # Clean up temp file
             os.unlink(temp_file)
+
+        # Use run_in_terminal to properly suspend and resume the app
+        run_in_terminal(edit_in_terminal)

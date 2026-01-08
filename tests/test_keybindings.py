@@ -16,50 +16,64 @@ class TestREPLKeyBindings:
         assert key_bindings.config == config
         assert key_bindings.bindings is not None
 
+    @patch("gdrepl.keybindings.run_in_terminal")
     @patch("subprocess.call")
-    @patch("os.environ.get")
-    def test_external_editor_with_env_var(self, mock_env_get, mock_subprocess):
+    def test_external_editor_with_env_var(self, mock_subprocess, mock_run_in_terminal):
         """Test external editor opens with environment variable"""
-        mock_env_get.return_value = "nano"
-
         config = REPLConfig()
         key_bindings = REPLKeyBindings(config)
 
         # Mock event and buffer
         mock_event = MagicMock()
         mock_event.app.current_buffer.text = "test content"
-        mock_event.app.suspend_to_background = MagicMock()
 
-        # Find and call the open_editor function
-        for binding in key_bindings.bindings.bindings:
-            if hasattr(binding, "handler") and binding.handler.__name__ == "open_editor":
-                binding.handler(mock_event)
-                break
+        # Mock run_in_terminal to execute callback immediately
+        def run_in_terminal_side_effect(callback):
+            callback()
 
-        mock_env_get.assert_called_with("EDITOR", "vim")
-        mock_subprocess.assert_called_once()
+        mock_run_in_terminal.side_effect = run_in_terminal_side_effect
 
+        # Set EDITOR env var
+        with patch.dict("os.environ", {"EDITOR": "nvim"}):
+            # Find and call the open_editor function
+            for binding in key_bindings.bindings.bindings:
+                if hasattr(binding, "handler") and binding.handler.__name__ == "open_editor":
+                    binding.handler(mock_event)
+                    break
+
+            # Should call subprocess with nvim
+            mock_subprocess.assert_called_once()
+            args = mock_subprocess.call_args[0][0]
+            assert args[0] == "nvim"
+
+    @patch("gdrepl.keybindings.run_in_terminal")
     @patch("subprocess.call")
-    @patch("os.environ.get")
-    def test_external_editor_fallback(self, mock_env_get, mock_subprocess):
+    def test_external_editor_fallback(self, mock_subprocess, mock_run_in_terminal):
         """Test external editor falls back to config default"""
-        mock_env_get.return_value = None
-
         config = REPLConfig(editor="emacs")
         key_bindings = REPLKeyBindings(config)
 
         mock_event = MagicMock()
         mock_event.app.current_buffer.text = "test content"
-        mock_event.app.suspend_to_background = MagicMock()
 
-        # Find and call the open_editor function
-        for binding in key_bindings.bindings.bindings:
-            if hasattr(binding, "handler") and binding.handler.__name__ == "open_editor":
-                binding.handler(mock_event)
-                break
+        # Mock run_in_terminal to execute callback immediately
+        def run_in_terminal_side_effect(callback):
+            callback()
 
-        mock_env_get.assert_called_with("EDITOR", "emacs")
-        mock_subprocess.assert_called_once()
+        mock_run_in_terminal.side_effect = run_in_terminal_side_effect
+
+        # No EDITOR env var - should use config default
+        with patch.dict("os.environ", {}, clear=True):
+            # Find and call the open_editor function
+            for binding in key_bindings.bindings.bindings:
+                if hasattr(binding, "handler") and binding.handler.__name__ == "open_editor":
+                    binding.handler(mock_event)
+                    break
+
+            # Should call subprocess with emacs (config default)
+            mock_subprocess.assert_called_once()
+            args = mock_subprocess.call_args[0][0]
+            assert args[0] == "emacs"
 
     def test_mode_toggle(self):
         """Test F4 mode toggle functionality"""
