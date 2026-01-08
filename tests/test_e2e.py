@@ -246,6 +246,41 @@ class TestREPLE2E:
         repl.expect(r"-> 123", timeout=10)
         repl.expect(">>>", timeout=10)
 
+    def test_multiple_prints_in_loop(self, repl):
+        """Test that multiple print statements in a loop all produce output."""
+        # Execute a for loop with multiple print statements
+        repl.sendline("for i in range(3):")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        repl.sendline("    print(i)")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        repl.sendline("    print('and')")
+        repl.expect(r"\.\.\.", timeout=10)
+
+        # Send empty line to finish the loop
+        repl.sendline("")
+
+        # Should see output from BOTH print statements for each iteration
+        repl.expect("0", timeout=10)
+        repl.expect("and", timeout=10)
+        repl.expect("1", timeout=10)
+        repl.expect("and", timeout=10)
+        repl.expect("2", timeout=10)
+        repl.expect("and", timeout=10)
+        repl.expect(">>>", timeout=10)
+
+        # Now execute code after the loop - the loop should NOT re-execute
+        repl.sendline("99")
+        repl.expect(r"-> 99", timeout=10)
+
+        # Get everything before the prompt to check no repeated output
+        repl.expect(">>>", timeout=10)
+
+        # Verify that we don't see the loop output repeated
+        # (the 'before' buffer should only contain "-> 99" and not "0", "1", "2", "and")
+        assert repl.before.count("and") == 0, "Loop output should not repeat"
+
 
 @pytest.mark.slow
 class TestREPLPersistence:

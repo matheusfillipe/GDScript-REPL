@@ -123,8 +123,8 @@ class Session:
           var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
           _local += "  " + identation + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
 
-        if is_print_call:
-          # Replace with pass to keep control structures valid
+        if is_print_call and i < last_index:
+          # Replace with pass to avoid repeated output from previous executions
           var indentation = " ".repeat(len(line) - len(line.lstrip(" \t")))
           _local += "  " + indentation + "pass\n"
         else:
