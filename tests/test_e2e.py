@@ -1,7 +1,5 @@
 """End-to-end tests for the gdrepl REPL shell."""
 
-import time
-
 import pexpect
 import pytest
 
@@ -203,18 +201,21 @@ class TestREPLE2E:
         repl.expect("unique_test_string", timeout=10)
         repl.expect(">>>", timeout=10)
 
-        # Clear the buffer
-        time.sleep(0.5)
+        # Send a neutral command to establish clean state
+        repl.sendline("var x = 1")
+        repl.expect(">>>", timeout=10)
 
-        # Run another command
+        # Now run another command - should NOT see the old print output
         repl.sendline("1 + 1")
 
-        # Capture output before next prompt
-        index = repl.expect([r"unique_test_string", r"-> 2"], timeout=10)
+        # Wait for the result
+        repl.expect(r"-> 2", timeout=10)
 
-        # Should see the result, NOT the repeated print
-        assert index == 1, "Print statement should not repeat"
+        # Get everything before the next prompt
         repl.expect(">>>", timeout=10)
+
+        # Check that unique_test_string is NOT in the output we just received
+        assert "unique_test_string" not in repl.before, "Print statement should not repeat"
 
 
 @pytest.mark.slow

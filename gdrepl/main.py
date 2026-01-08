@@ -10,6 +10,7 @@ from prompt_toolkit.application.current import get_app
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.cursor_shapes import ModalCursorShapeConfig
 from prompt_toolkit.document import Document
 from prompt_toolkit.enums import EditingMode
 from prompt_toolkit.lexers import PygmentsLexer
@@ -138,7 +139,13 @@ def repl_loop(client, options: PromptOptions, server=None):
     style = getattr(REPLStyles, config.toolbar_style.upper(), REPLStyles.COLORFUL)
 
     def get_toolbar():
-        mode = "Vi" if get_app().editing_mode == EditingMode.VI else "Emacs"
+        app = get_app()
+        if app.editing_mode == EditingMode.VI:
+            # Get Vi mode status (insert, navigation, replace)
+            vi_mode = app.vi_state.input_mode.name.lower()
+            mode = f"Vi [{vi_mode}]"
+        else:
+            mode = "Emacs"
         toolbar_func = getattr(ToolbarStyler, config.toolbar_style, ToolbarStyler.colorful)
         return toolbar_func(mode)
 
@@ -157,6 +164,9 @@ def repl_loop(client, options: PromptOptions, server=None):
             continue
         COMMANDS[cmd] = Command(help=help, send_to_server=True)
 
+    # Configure cursor shapes for Vi mode: beam in insert, block in normal, underline in replace
+    cursor_shape_config = ModalCursorShapeConfig()
+
     # Note: Tab completion is disabled to allow manual indentation with Tab key
     session: PromptSession[str] = PromptSession(
         history=history,
@@ -167,6 +177,8 @@ def repl_loop(client, options: PromptOptions, server=None):
         completer=None,
         complete_while_typing=False,
         style=style,
+        cursor=cursor_shape_config,
+        editing_mode=EditingMode.VI if options.vi else EditingMode.EMACS,
     )
 
     multiline_buffer = ""

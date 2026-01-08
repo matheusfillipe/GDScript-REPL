@@ -1,3 +1,4 @@
+from websocket import WebSocketTimeoutException
 from websocket import create_connection
 
 from .constants import HOST
@@ -7,7 +8,7 @@ from .constants import PORT
 class client:
     def __init__(self, host=HOST, port=PORT):
         try:
-            self.ws = create_connection(f"ws://{host}:{port}")
+            self.ws = create_connection(f"ws://{host}:{port}", timeout=10)
         except ConnectionRefusedError:
             print("Could not connect to server")
             exit(1)
@@ -23,7 +24,11 @@ class client:
         if not get_response:
             return ""
 
-        resp = self.ws.recv()
+        try:
+            resp = self.ws.recv()
+        except WebSocketTimeoutException:
+            return "Error: Server timeout (took longer than 10 seconds to respond)"
+
         if isinstance(resp, bytes):
             resp = resp.decode()
         # Return response
