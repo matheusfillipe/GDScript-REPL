@@ -112,27 +112,14 @@ class Session:
       local_scope_lock = false
       for line in lines.slice(0, len(lines)-1):
         var has_keyword = check_scope(line, i)
-        var line_stripped = line.strip_edges()
 
-        # Replace print statements from previous executions with pass to avoid repeated output
-        # while keeping control structure bodies valid
-        var is_print_call = line_stripped.begins_with("print(") or line_stripped.begins_with("printerr(")
-
-        # Inject stdout marker at the last scope index
         if i == last_index:
           var identation = " ".repeat(len(line.rstrip(" ")) - len(line.rstrip(" ").lstrip(" ")))
           _local += "  " + identation + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
 
-        if is_print_call and i < last_index:
-          # Replace with pass to avoid repeated output from previous executions
-          var indentation = " ".repeat(len(line) - len(line.lstrip(" \t")))
-          _local += "  " + indentation + "pass\n"
-        else:
-          _local += "  " + line + "\n"
-
+        _local += "  " + line + "\n"
         i += 1
 
-    # Inject stdout marker before the last line
     if i == last_index:
       _local += "  " + "print(\"" + STDOUT_MARKER_START + "\")" + "\n"
 

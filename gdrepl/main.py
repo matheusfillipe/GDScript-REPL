@@ -88,9 +88,15 @@ def wait_for_output(server, timeout):
     try:
         server.expect(STDOUT_MARKER_END, timeout=timeout)
         output = server.before.decode()
-        # Remove any stdout markers from the output
+
+        # Only show output after the last marker (new execution scope)
+        last_marker_pos = output.rfind(STDOUT_MARKER_START)
+        if last_marker_pos != -1:
+            output = output[last_marker_pos + len(STDOUT_MARKER_START) :]
+
         output = output.replace(STDOUT_MARKER_START, "")
         output = output.replace(STDOUT_MARKER_END, "")
+
         # Filter out void return errors (these are handled by retry logic)
         lines = output.split("\n")
         filtered_lines = []

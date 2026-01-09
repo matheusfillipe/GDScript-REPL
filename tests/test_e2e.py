@@ -281,6 +281,33 @@ class TestREPLE2E:
         # (the 'before' buffer should only contain "-> 99" and not "0", "1", "2", "and")
         assert repl.before.count("and") == 0, "Loop output should not repeat"
 
+    def test_various_output_functions(self, repl):
+        """Test that various GDScript output functions work (not just print)."""
+        # Test printerr - should show output
+        repl.sendline("printerr('error message')")
+        repl.expect("error message", timeout=10)
+        repl.expect(">>>", timeout=10)
+
+        # Test push_warning - should show output
+        repl.sendline("push_warning('warning message')")
+        repl.expect(">>>", timeout=10)
+
+        # Test push_error - should show output
+        repl.sendline("push_error('error test')")
+        repl.expect(">>>", timeout=10)
+
+        # Test that print_rich works (if available in Godot 4)
+        repl.sendline("print_rich('[color=red]colored text[/color]')")
+        repl.expect(">>>", timeout=10)
+
+        # Now test that these don't repeat when we add new code
+        repl.sendline("42")
+        repl.expect(r"-> 42", timeout=10)
+        repl.expect(">>>", timeout=10)
+
+        # The old messages should not repeat
+        assert repl.before.count("error message") == 0, "printerr output should not repeat"
+
 
 @pytest.mark.slow
 class TestREPLPersistence:
