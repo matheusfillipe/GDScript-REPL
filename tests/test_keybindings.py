@@ -98,3 +98,39 @@ class TestREPLKeyBindings:
         # Toggle back to Emacs
         binding.handler(mock_event)
         assert mock_app.editing_mode == EditingMode.EMACS
+
+    def test_tab_accepts_suggestion(self):
+        """Test that Tab accepts auto-suggestion when available"""
+        config = REPLConfig()
+        key_bindings = REPLKeyBindings(config)
+
+        mock_event = MagicMock()
+        mock_buffer = MagicMock()
+        mock_suggestion = MagicMock()
+        mock_suggestion.text = "suggested_text"
+        mock_buffer.suggestion = mock_suggestion
+        mock_event.current_buffer = mock_buffer
+
+        for binding in key_bindings.bindings.bindings:
+            if hasattr(binding, "handler") and binding.handler.__name__ == "insert_tab":
+                binding.handler(mock_event)
+                break
+
+        mock_buffer.insert_text.assert_called_once_with("suggested_text")
+
+    def test_tab_inserts_spaces_without_suggestion(self):
+        """Test that Tab inserts spaces when no suggestion is available"""
+        config = REPLConfig()
+        key_bindings = REPLKeyBindings(config)
+
+        mock_event = MagicMock()
+        mock_buffer = MagicMock()
+        mock_buffer.suggestion = None
+        mock_event.current_buffer = mock_buffer
+
+        for binding in key_bindings.bindings.bindings:
+            if hasattr(binding, "handler") and binding.handler.__name__ == "insert_tab":
+                binding.handler(mock_event)
+                break
+
+        mock_buffer.insert_text.assert_called_once_with("    ")

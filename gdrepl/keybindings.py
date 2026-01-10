@@ -19,8 +19,12 @@ class REPLKeyBindings:
     def _setup_bindings(self) -> None:
         @self.bindings.add("tab", eager=True)
         def insert_tab(event: Any) -> None:
-            """Insert 4 spaces for indentation"""
-            event.current_buffer.insert_text("    ")
+            buffer = event.current_buffer
+
+            if buffer.suggestion:
+                buffer.insert_text(buffer.suggestion.text)
+            else:
+                buffer.insert_text("    ")
 
         @self.bindings.add("f4")
         def toggle_mode(event: Any) -> None:
